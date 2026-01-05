@@ -36,7 +36,9 @@ const statusConfig: Record<string, { label: string; icon: React.ElementType; col
   confirmed: { label: "Confirmado", icon: Package, color: "bg-blue-500/10 text-blue-600" },
   preparing: { label: "Preparando", icon: Package, color: "bg-orange-500/10 text-orange-600" },
   ready: { label: "Pronto", icon: CheckCircle2, color: "bg-green-500/10 text-green-600" },
+  out_for_delivery: { label: "Em entrega", icon: Package, color: "bg-primary/10 text-primary" },
   delivered: { label: "Entregue", icon: CheckCircle2, color: "bg-green-500/10 text-green-600" },
+  cancelled: { label: "Cancelado", icon: XCircle, color: "bg-red-500/10 text-red-600" },
   canceled: { label: "Cancelado", icon: XCircle, color: "bg-red-500/10 text-red-600" },
 };
 
@@ -176,7 +178,7 @@ const OrderHistory = () => {
   };
 
   const canReview = (order: any) => {
-    return order.status === "delivered" || order.status === "ready";
+    return order.status === "delivered" || order.status === "ready" || order.status === "out_for_delivery";
   };
 
   return (
@@ -224,8 +226,8 @@ const OrderHistory = () => {
         ) : (
           <div className="space-y-4">
             {orders.map((order, index) => {
-              const status = statusConfig[order.status || "pending"];
-              const StatusIcon = status.icon;
+              const status = statusConfig[order.status || "pending"] || statusConfig.pending;
+              const StatusIcon = status?.icon || Clock;
 
               return (
                 <motion.div

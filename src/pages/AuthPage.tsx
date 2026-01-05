@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, User, Phone, Store, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,12 @@ type AuthTab = "login" | "register";
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { signIn, signUp, user, loading, isAdmin, isCompany } = useAuth();
+
+  // Get the redirect path from state (e.g., from checkout)
+  const from = (location.state as { from?: string })?.from;
 
   const [activeTab, setActiveTab] = useState<AuthTab>(
     searchParams.get("tab") === "register" ? "register" : "login"
@@ -35,6 +39,12 @@ const AuthPage = () => {
   useEffect(() => {
     if (!user || loading) return;
 
+    // If there's a redirect path from state, go there
+    if (from) {
+      navigate(from);
+      return;
+    }
+
     if (isAdmin) {
       navigate("/admin");
       return;
@@ -46,7 +56,7 @@ const AuthPage = () => {
     }
 
     navigate("/home");
-  }, [user, loading, isAdmin, isCompany, navigate]);
+  }, [user, loading, isAdmin, isCompany, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, User, Phone, MessageCircle, ShoppingBag, Ticket, X, Check } from "lucide-react";
+import { ArrowLeft, MapPin, User, Phone, MessageCircle, ShoppingBag, Ticket, X, Check, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,15 +10,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCreateOrder } from "@/hooks/useOrders";
 import { useValidateCoupon, useIncrementCouponUsage } from "@/hooks/useCoupons";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { items, total, companyId, companyName, companyPhone, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const createOrder = useCreateOrder();
   const validateCoupon = useValidateCoupon();
   const incrementCouponUsage = useIncrementCouponUsage();
+
+  // Ref to prevent double submission
+  const isSubmittingRef = useRef(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -38,6 +42,28 @@ const CheckoutPage = () => {
 
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
   const [cashChangeFor, setCashChangeFor] = useState("");
+
+  // Fetch user profile to pre-fill phone
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("name, phone")
+          .eq("id", user.id)
+          .single();
+        
+        if (data) {
+          setFormData(prev => ({
+            ...prev,
+            name: data.name || prev.name,
+            phone: data.phone || prev.phone,
+          }));
+        }
+      }
+    };
+    fetchUserProfile();
+  }, [user?.id]);
 
   const finalTotal = appliedCoupon ? Math.max(0, total - appliedCoupon.discount) : total;
 
@@ -125,6 +151,13 @@ const CheckoutPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmittingRef.current || isLoading) {
+      return;
+    }
+    
+    isSubmittingRef.current = true;
     setIsLoading(true);
 
     try {
@@ -190,10 +223,46 @@ const CheckoutPage = () => {
         description: error.message || "Erro ao criar pedido",
         variant: "destructive",
       });
+      // Reset the ref on error so user can try again
+      isSubmittingRef.current = false;
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Require login to place order
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
+        <LogIn className="w-16 h-16 text-muted-foreground" />
+        <h2 className="font-display text-xl font-bold text-foreground">Faça login para continuar</h2>
+        <p className="text-muted-foreground text-center max-w-sm">
+          Para fazer seu pedido, você precisa estar logado. Assim conseguimos salvar seu histórico de pedidos.
+        </p>
+        <Link to="/auth" state={{ from: "/checkout" }}>
+          <Button variant="hero" size="lg">
+            <LogIn className="w-5 h-5 mr-2" />
+            Entrar ou Cadastrar
+          </Button>
+        </Link>
+        <button 
+          onClick={() => navigate(-1)} 
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          Voltar ao restaurante
+        </button>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

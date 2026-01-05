@@ -23,10 +23,13 @@ const statusOptions = [
   { value: "pending", label: "Pendente", color: "bg-yellow-500", icon: Clock },
   { value: "confirmed", label: "Confirmado", color: "bg-blue-500", icon: CheckCircle },
   { value: "preparing", label: "Preparando", color: "bg-purple-500", icon: Package },
+  { value: "ready", label: "Pronto", color: "bg-green-500", icon: CheckCircle },
   { value: "out_for_delivery", label: "Em entrega", color: "bg-primary", icon: Truck },
   { value: "delivered", label: "Entregue", color: "bg-accent", icon: CheckCircle },
   { value: "cancelled", label: "Cancelado", color: "bg-destructive", icon: XCircle },
 ];
+
+const defaultStatus = { value: "pending", label: "Pendente", color: "bg-yellow-500", icon: Clock };
 
 const CompanyOrders = () => {
   const navigate = useNavigate();
@@ -61,7 +64,7 @@ const CompanyOrders = () => {
   }, [orders]);
 
   const getStatusInfo = (status: string | null) =>
-    statusOptions.find((s) => s.value === status) || statusOptions[0];
+    statusOptions.find((s) => s.value === status) || defaultStatus;
 
   return (
     <div className="min-h-screen bg-background flex">

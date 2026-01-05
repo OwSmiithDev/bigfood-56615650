@@ -23,6 +23,8 @@ import CompanyProducts from "./pages/company/CompanyProducts";
 import CompanyOrders from "./pages/company/CompanyOrders";
 import CompanyReviews from "./pages/company/CompanyReviews";
 import CompanySettings from "./pages/company/CompanySettings";
+import ChoosePlanPage from "./pages/company/ChoosePlanPage";
+import PaymentPage from "./pages/company/PaymentPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +76,8 @@ const App = () => (
               
               {/* Company Routes */}
               <Route path="/empresa" element={<ProtectedCompanyRoute><CompanyDashboard /></ProtectedCompanyRoute>} />
+              <Route path="/empresa/planos" element={<ProtectedCompanyRoute><ChoosePlanPage /></ProtectedCompanyRoute>} />
+              <Route path="/empresa/pagamento" element={<ProtectedCompanyRoute><PaymentPage /></ProtectedCompanyRoute>} />
               <Route path="/empresa/produtos" element={<ProtectedCompanyRoute><CompanyProducts /></ProtectedCompanyRoute>} />
               <Route path="/empresa/pedidos" element={<ProtectedCompanyRoute><CompanyOrders /></ProtectedCompanyRoute>} />
               <Route path="/empresa/avaliacoes" element={<ProtectedCompanyRoute><CompanyReviews /></ProtectedCompanyRoute>} />

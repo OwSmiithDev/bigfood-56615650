@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   Menu,
@@ -6,11 +6,12 @@ import {
   Clock,
   DollarSign,
   ShoppingBag,
+  AlertCircle,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCompany } from "@/hooks/useCompany";
+import { useCompany, useSubscription } from "@/hooks/useCompany";
 import { useOrders } from "@/hooks/useOrders";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { CompanySidebar } from "@/components/company/CompanySidebar";
@@ -19,11 +20,21 @@ const CompanyDashboard = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { company, isLoading: loadingCompany } = useCompany();
+  const { data: subscription, isLoading: loadingSubscription } = useSubscription(company?.id);
   const { data: orders } = useOrders(company?.id);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Enable realtime notifications
   useRealtimeOrders(company?.id);
+
+  // Redirect to plan selection if subscription is pending or not set
+  useEffect(() => {
+    if (!loadingCompany && !loadingSubscription && company) {
+      if (!subscription || subscription.status === "pending") {
+        navigate("/empresa/planos");
+      }
+    }
+  }, [company, subscription, loadingCompany, loadingSubscription, navigate]);
 
   const todayOrders = orders?.filter(
     (o) => new Date(o.created_at).toDateString() === new Date().toDateString()
@@ -34,7 +45,7 @@ const CompanyDashboard = () => {
 
   const todayRevenue = todayOrders.reduce((sum, o) => sum + o.total, 0);
 
-  if (loadingCompany) {
+  if (loadingCompany || loadingSubscription) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -53,6 +64,26 @@ const CompanyDashboard = () => {
         </p>
         <Link to="/cadastrar-empresa">
           <Button variant="hero">Cadastrar empresa</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // Show message if subscription is not active
+  if (subscription?.status !== "active") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
+        <div className="w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-yellow-500" />
+        </div>
+        <h2 className="font-display text-xl font-bold text-foreground">
+          Aguardando aprovação
+        </h2>
+        <p className="text-muted-foreground text-center max-w-md">
+          Seu plano está aguardando aprovação do administrador. Você será notificado quando for aprovado.
+        </p>
+        <Link to="/empresa/planos">
+          <Button variant="outline">Ver planos</Button>
         </Link>
       </div>
     );

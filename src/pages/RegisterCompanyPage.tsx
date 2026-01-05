@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/hooks/useCompany";
 import { useToast } from "@/hooks/use-toast";
-
+import { RESTAURANT_CATEGORIES } from "@/constants/categories";
 const RegisterCompanyPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -165,16 +165,11 @@ const RegisterCompanyPage = () => {
                   required
                 >
                   <option value="">Selecione uma categoria</option>
-                  <option value="Pizzaria">Pizzaria</option>
-                  <option value="Hamburgueria">Hamburgueria</option>
-                  <option value="Japonês">Japonês</option>
-                  <option value="Saudável">Saudável</option>
-                  <option value="Cafeteria">Cafeteria</option>
-                  <option value="Doces">Doces</option>
-                  <option value="Brasileira">Brasileira</option>
-                  <option value="Italiana">Italiana</option>
-                  <option value="Mexicana">Mexicana</option>
-                  <option value="Árabe">Árabe</option>
+                  {RESTAURANT_CATEGORIES.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.emoji} {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

@@ -1,27 +1,29 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Star, Clock, LogOut, User, ShoppingBag } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useRestaurants } from "@/hooks/useRestaurants";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdvancedSearch, SearchFilters } from "@/components/AdvancedSearch";
+import { RESTAURANT_CATEGORIES } from "@/constants/categories";
 
+// Adiciona opção "Todos" no início
 const categories = [
   { id: "all", name: "Todos", emoji: "🍽️" },
-  { id: "Hambúrguer", name: "Hambúrguer", emoji: "🍔" },
-  { id: "Pizza", name: "Pizza", emoji: "🍕" },
-  { id: "Japonesa", name: "Japonesa", emoji: "🍣" },
-  { id: "Brasileira", name: "Brasileira", emoji: "🍖" },
-  { id: "Açaí", name: "Açaí", emoji: "🍇" },
-  { id: "Doces", name: "Doces", emoji: "🍰" },
+  ...RESTAURANT_CATEGORIES,
 ];
 
 const CustomerHome = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, signOut } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  
+  // Lê a categoria da URL ou usa "all" como padrão
+  const categoryFromUrl = searchParams.get("categoria") || "all";
+  const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl);
+  
   const [filters, setFilters] = useState<SearchFilters>({
     minRating: null,
     maxDeliveryFee: null,
@@ -29,6 +31,25 @@ const CustomerHome = () => {
     freeDelivery: false,
     sortBy: null,
   });
+  
+  // Sincroniza categoria com a URL
+  useEffect(() => {
+    const urlCategory = searchParams.get("categoria") || "all";
+    if (urlCategory !== selectedCategory) {
+      setSelectedCategory(urlCategory);
+    }
+  }, [searchParams]);
+
+  // Atualiza URL quando categoria muda
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    if (categoryId === "all") {
+      searchParams.delete("categoria");
+    } else {
+      searchParams.set("categoria", categoryId);
+    }
+    setSearchParams(searchParams);
+  };
   
   const { data: restaurants, isLoading } = useRestaurants(selectedCategory, searchTerm);
 
@@ -136,7 +157,7 @@ const CustomerHome = () => {
             {categories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
+                onClick={() => handleCategoryChange(cat.id)}
                 className={`flex flex-col items-center gap-2 px-4 py-3 rounded-xl transition-all shrink-0 ${
                   selectedCategory === cat.id
                     ? "bg-primary text-primary-foreground"

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 type UserType = "user" | "company";
 type AuthTab = "login" | "register";
@@ -37,25 +38,50 @@ const AuthPage = () => {
   const [businessName, setBusinessName] = useState("");
 
   useEffect(() => {
-    if (!user || loading) return;
+    const checkAndRedirect = async () => {
+      if (!user || loading) return;
 
-    // If there's a redirect path from state, go there
-    if (from) {
-      navigate(from);
-      return;
-    }
+      // If there's a redirect path from state, go there
+      if (from) {
+        navigate(from);
+        return;
+      }
 
-    if (isAdmin) {
-      navigate("/admin");
-      return;
-    }
+      if (isAdmin) {
+        navigate("/admin");
+        return;
+      }
 
-    if (isCompany) {
-      navigate("/empresa");
-      return;
-    }
+      if (isCompany) {
+        // Check if company has a subscription and if it's active
+        const { data: company } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-    navigate("/home");
+        if (company) {
+          const { data: subscription } = await supabase
+            .from("subscriptions")
+            .select("status")
+            .eq("company_id", company.id)
+            .maybeSingle();
+
+          // If pending or no subscription, go to plan selection
+          if (!subscription || subscription.status === "pending") {
+            navigate("/empresa/planos");
+            return;
+          }
+        }
+
+        navigate("/empresa");
+        return;
+      }
+
+      navigate("/home");
+    };
+
+    checkAndRedirect();
   }, [user, loading, isAdmin, isCompany, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,8 +94,37 @@ const AuthPage = () => {
         if (error) throw error;
         toast({ title: "Login realizado!", description: "Bem-vindo de volta!" });
       } else {
-        const { error } = await signUp(email, password, { name, phone, user_type: userType, business_name: businessName });
+        const { error } = await signUp(email, password, { 
+          name, 
+          phone, 
+          user_type: userType, 
+          business_name: businessName 
+        });
         if (error) throw error;
+
+        // If registering as company, create the company record after signup
+        if (userType === "company") {
+          // Wait a moment for the user to be created
+          const { data: { user: newUser } } = await supabase.auth.getUser();
+          
+          if (newUser) {
+            // Create company record
+            const { error: companyError } = await supabase
+              .from("companies")
+              .insert({
+                user_id: newUser.id,
+                business_name: businessName || name,
+                display_name: businessName || name,
+                phone: phone || null,
+                email: email,
+              });
+
+            if (companyError) {
+              console.error("Error creating company:", companyError);
+            }
+          }
+        }
+
         toast({ title: "Conta criada!", description: "Sua conta foi criada com sucesso." });
       }
     } catch (error: any) {

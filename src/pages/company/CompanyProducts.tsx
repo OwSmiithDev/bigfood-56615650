@@ -42,10 +42,11 @@ const CompanyProducts = () => {
   const createCategory = useCreateCategory();
   const deleteCategory = useDeleteCategory();
 
-  // Get product limit from plan
-  const maxProducts = subscription?.plans?.max_products;
+  // Get product limit from plan - only count if subscription is active
+  const isSubscriptionActive = subscription?.status === "active";
+  const maxProducts = subscription?.plans?.max_products || 0;
   const currentProductCount = products?.length || 0;
-  const canAddProduct = !maxProducts || currentProductCount < maxProducts;
+  const canAddProduct = isSubscriptionActive && (!maxProducts || currentProductCount < maxProducts);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -93,6 +94,16 @@ const CompanyProducts = () => {
 
   const handleSaveProduct = async () => {
     if (!company) return;
+
+    // Check if subscription is active
+    if (!isSubscriptionActive) {
+      toast({
+        title: "Plano não ativado",
+        description: "Aguarde a aprovação do seu plano para adicionar produtos.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Check product limit for new products
     if (!editingProduct && !canAddProduct) {

@@ -146,7 +146,7 @@ const AuthPage = () => {
         />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 flex flex-col justify-center p-12 text-white">
-          <Logo size="lg" textClassName="text-white" className="mb-12" />
+          <Logo size="lg" textClassName="text-white" className="mb-12" transparent />
           <h1 className="font-display text-4xl font-bold mb-4 drop-shadow-lg">
             {userType === "company" ? "Leve seu negócio para o próximo nível" : "Descubra os melhores sabores"}
           </h1>

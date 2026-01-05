@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import logoImage from "@/assets/logo.png";
+import logoTransparent from "@/assets/logo-transparent.png";
 
 interface LogoProps {
   to?: string;
@@ -7,6 +8,7 @@ interface LogoProps {
   showText?: boolean;
   textClassName?: string;
   className?: string;
+  transparent?: boolean;
 }
 
 const sizeClasses = {
@@ -21,11 +23,12 @@ export const Logo = ({
   showText = true,
   textClassName = "text-foreground",
   className = "",
+  transparent = false,
 }: LogoProps) => {
   const content = (
     <div className={`flex items-center gap-2 ${className}`}>
       <img
-        src={logoImage}
+        src={transparent ? logoTransparent : logoImage}
         alt="BigFood Logo"
         className={`${sizeClasses[size]} w-auto object-contain`}
       />

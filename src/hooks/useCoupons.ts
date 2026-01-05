@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeUpdates } from "./useRealtimeUpdates";
 
 export interface Coupon {
   id: string;
@@ -19,6 +20,13 @@ export interface Coupon {
 }
 
 export const useCoupons = (companyId?: string | null) => {
+  // Enable realtime updates for coupons
+  useRealtimeUpdates({
+    table: "coupons",
+    queryKey: ["coupons", companyId || ""],
+    companyId: companyId || undefined,
+  });
+
   return useQuery({
     queryKey: ["coupons", companyId],
     queryFn: async () => {
@@ -62,79 +70,28 @@ export const useValidateCoupon = () => {
       code,
       companyId,
       orderTotal,
-      userId,
     }: {
       code: string;
       companyId: string;
       orderTotal: number;
       userId?: string | null;
     }) => {
-      const { data, error } = await supabase
-        .from("coupons")
-        .select("*")
-        .eq("code", code.toUpperCase())
-        .eq("is_active", true)
-        .limit(1);
+      // Use backend edge function for 100% guaranteed validation
+      const { data, error } = await supabase.functions.invoke("validate-coupon", {
+        body: { code, companyId, orderTotal },
+      });
 
-      if (error) throw error;
-
-      const coupon = (data?.[0] as Coupon | undefined) ?? null;
-      if (!coupon) {
-        throw new Error("Cupom inválido ou não encontrado");
+      if (error) {
+        throw new Error(error.message || "Erro ao validar cupom");
       }
 
-      // Check if coupon is for this company or is global
-      if (coupon.company_id && coupon.company_id !== companyId) {
-        throw new Error("Cupom não válido para este restaurante");
-      }
-
-      // Check validity dates
-      const now = new Date();
-      if (coupon.valid_from && new Date(coupon.valid_from) > now) {
-        throw new Error("Cupom ainda não está válido");
-      }
-      if (coupon.valid_until && new Date(coupon.valid_until) < now) {
-        throw new Error("Cupom expirado");
-      }
-
-      // Check usage limit
-      if (coupon.max_uses && coupon.used_count >= coupon.max_uses) {
-        throw new Error("Cupom esgotado");
-      }
-
-      // Check minimum order value
-      if (coupon.min_order_value && orderTotal < coupon.min_order_value) {
-        throw new Error(
-          `Pedido mínimo de R$ ${coupon.min_order_value.toFixed(2).replace(".", ",")} para usar este cupom`
-        );
-      }
-
-      // Check if the same logged-in user already used this coupon
-      if (userId) {
-        const { data: usage, error: usageError } = await supabase
-          .from("orders")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("coupon_id", coupon.id)
-          .limit(1);
-
-        if (usageError) throw usageError;
-        if ((usage?.length || 0) > 0) {
-          throw new Error("Você já utilizou este cupom anteriormente");
-        }
-      }
-
-      // Calculate discount
-      let discount = 0;
-      if (coupon.discount_type === "percentage") {
-        discount = orderTotal * (coupon.discount_value / 100);
-      } else {
-        discount = Math.min(coupon.discount_value, orderTotal);
+      if (!data.success) {
+        throw new Error(data.error || "Erro ao validar cupom");
       }
 
       return {
-        coupon,
-        discount,
+        coupon: data.coupon as Coupon,
+        discount: data.discount as number,
       };
     },
   });

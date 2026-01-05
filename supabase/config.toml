@@ -1,1 +1,7 @@
 project_id = "vqebihhxkiitvyoqnivq"
+
+[functions.update-company-status]
+verify_jwt = false
+
+[functions.validate-coupon]
+verify_jwt = false

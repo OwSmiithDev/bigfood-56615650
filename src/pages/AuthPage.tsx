@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, User, Phone, Store, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import authBackground from "@/assets/auth-background.png";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -145,12 +146,7 @@ const AuthPage = () => {
         />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 flex flex-col justify-center p-12 text-white">
-          <Link to="/" className="flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <span className="font-display font-bold text-2xl">B</span>
-            </div>
-            <span className="font-display font-bold text-2xl">BigFood</span>
-          </Link>
+          <Logo size="lg" textClassName="text-white" className="mb-12" />
           <h1 className="font-display text-4xl font-bold mb-4 drop-shadow-lg">
             {userType === "company" ? "Leve seu negócio para o próximo nível" : "Descubra os melhores sabores"}
           </h1>

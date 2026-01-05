@@ -7,6 +7,7 @@ import { useRestaurants } from "@/hooks/useRestaurants";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdvancedSearch, SearchFilters } from "@/components/AdvancedSearch";
 import { RESTAURANT_CATEGORIES } from "@/constants/categories";
+import { Logo } from "@/components/Logo";
 
 // Adiciona opção "Todos" no início
 const categories = [
@@ -98,12 +99,8 @@ const CustomerHome = () => {
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
-            <Link to="/" className="flex items-center gap-2 shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <span className="font-display font-bold text-xl text-primary-foreground">B</span>
-              </div>
-              <span className="font-display font-bold text-xl hidden sm:block">BigFood</span>
-            </Link>
+            <Logo size="md" showText={false} className="sm:hidden" />
+            <Logo size="md" className="hidden sm:flex" />
 
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" className="shrink-0">

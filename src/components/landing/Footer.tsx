@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Instagram, Facebook, Linkedin, Mail, Phone, MessageCircle } from "lucide-react";
 import { ADMIN_CONTACT, getWhatsAppLink } from "@/constants/contact";
+import { Logo } from "@/components/Logo";
 
 const Footer = () => {
   return (
@@ -9,14 +10,7 @@ const Footer = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           {/* Logo & Description */}
           <div>
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-display font-bold text-xl">B</span>
-              </div>
-              <span className="font-display font-bold text-xl text-background">
-                BigFood
-              </span>
-            </Link>
+            <Logo size="md" textClassName="text-background" />
             <p className="text-background/70 text-sm leading-relaxed mb-4">
               A plataforma que conecta você aos melhores restaurantes da sua região.
             </p>

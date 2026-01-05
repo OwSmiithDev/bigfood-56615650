@@ -12,6 +12,7 @@ import {
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminStats, useAdminCompanies } from "@/hooks/useAdmin";
+import { OrdersChart } from "@/components/company/OrdersChart";
 
 const statCards = [
   { 
@@ -138,6 +139,11 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Orders Chart */}
+      <div className="mb-6 sm:mb-8">
+        <OrdersChart showCategoryFilter={true} />
       </div>
 
       {/* Recent Activity */}

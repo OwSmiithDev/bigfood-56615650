@@ -15,6 +15,7 @@ import { useCompany, useSubscription } from "@/hooks/useCompany";
 import { useOrders } from "@/hooks/useOrders";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { CompanySidebar } from "@/components/company/CompanySidebar";
+import { OrdersChart } from "@/components/company/OrdersChart";
 
 const CompanyDashboard = () => {
   const navigate = useNavigate();
@@ -194,6 +195,11 @@ const CompanyDashboard = () => {
                 </div>
               </div>
             </motion.div>
+          </div>
+
+          {/* Orders Chart */}
+          <div className="mb-8">
+            <OrdersChart companyId={company?.id} />
           </div>
 
           {/* Recent Orders */}

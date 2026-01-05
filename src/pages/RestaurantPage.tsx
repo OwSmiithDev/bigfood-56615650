@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Star, Clock, MapPin, ShoppingBag, Plus, Minus, X } from "lucide-react";
+import { ArrowLeft, Star, Clock, MapPin, ShoppingBag, Plus, Minus, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProducts, useProductCategories } from "@/hooks/useProducts";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import { isWithinOpeningHours, getNextOpeningTime, OpeningHours } from "@/utils/openingHours";
 
 const RestaurantPage = () => {
+  const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { addItem, items, total, itemCount, companyId, clearCart } = useCart();
@@ -31,10 +33,40 @@ const RestaurantPage = () => {
       return data;
     },
     enabled: !!id,
+    refetchInterval: 60000, // Refresh every minute to check is_open status
   });
+
+  // Realtime updates for company status
+  useEffect(() => {
+    if (!id) return;
+    
+    const channel = supabase
+      .channel(`restaurant-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "companies",
+          filter: `id=eq.${id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["restaurant", id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, queryClient]);
 
   const { data: products, isLoading: loadingProducts } = useProducts(id);
   const { data: categories } = useProductCategories(id);
+
+  // Check if restaurant is actually open based on opening hours
+  const isRestaurantOpen = restaurant?.is_open && isWithinOpeningHours(restaurant?.opening_hours);
+  const nextOpeningTime = !isRestaurantOpen ? getNextOpeningTime(restaurant?.opening_hours) : null;
 
   const filteredProducts = selectedCategory
     ? products?.filter((p) => p.category_id === selectedCategory)
@@ -394,6 +426,25 @@ const RestaurantPage = () => {
                   ))}
                 </div>
 
+                {/* Closed store warning */}
+                {!isRestaurantOpen && (
+                  <div className="mt-4 p-4 bg-destructive/10 border border-destructive/20 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-destructive">
+                          Esta empresa está fechada no momento e não aceita pedidos.
+                        </p>
+                        {nextOpeningTime && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            A loja abrirá {nextOpeningTime.includes("às") ? "" : "às "}{nextOpeningTime}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="border-t border-border mt-6 pt-4">
                   <div className="flex items-center justify-between text-lg font-bold">
                     <span>Total</span>
@@ -404,11 +455,17 @@ const RestaurantPage = () => {
                 </div>
 
                 <div className="mt-6 space-y-3">
-                  <Link to="/checkout">
-                    <Button variant="hero" size="lg" className="w-full">
-                      Finalizar pedido
+                  {isRestaurantOpen ? (
+                    <Link to="/checkout">
+                      <Button variant="hero" size="lg" className="w-full">
+                        Finalizar pedido
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button variant="hero" size="lg" className="w-full" disabled>
+                      Loja fechada
                     </Button>
-                  </Link>
+                  )}
                   <Button
                     variant="outline"
                     size="lg"

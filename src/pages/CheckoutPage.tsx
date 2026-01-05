@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, User, Phone, MessageCircle, ShoppingBag, Ticket, X, Check, LogIn } from "lucide-react";
+import { ArrowLeft, MapPin, User, Phone, MessageCircle, ShoppingBag, Ticket, X, Check, LogIn, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { useCreateOrder } from "@/hooks/useOrders";
 import { useValidateCoupon, useIncrementCouponUsage } from "@/hooks/useCoupons";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { isWithinOpeningHours, getNextOpeningTime } from "@/utils/openingHours";
+import { useQuery } from "@tanstack/react-query";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -44,6 +46,26 @@ const CheckoutPage = () => {
 
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
   const [cashChangeFor, setCashChangeFor] = useState("");
+
+  // Fetch company to check if open
+  const { data: company } = useQuery({
+    queryKey: ["checkout-company", companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const { data, error } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", companyId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+    refetchInterval: 30000,
+  });
+
+  const isCompanyOpen = company?.is_open && isWithinOpeningHours(company?.opening_hours);
+  const nextOpeningTime = !isCompanyOpen ? getNextOpeningTime(company?.opening_hours) : null;
 
   // Fetch user profile to pre-fill phone
   useEffect(() => {
@@ -310,6 +332,25 @@ const CheckoutPage = () => {
       </header>
 
       <div className="container mx-auto px-4 py-6 max-w-lg">
+        {/* Closed Store Warning */}
+        {!isCompanyOpen && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-destructive">
+                  Esta empresa está fechada no momento e não aceita pedidos.
+                </p>
+                {nextOpeningTime && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    A loja abrirá {nextOpeningTime.includes("às") ? "" : "às "}{nextOpeningTime}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Order Summary */}
         <div className="bg-card rounded-xl p-4 shadow-card mb-6">
           <h2 className="font-semibold text-foreground mb-4">Resumo do Pedido</h2>
@@ -495,9 +536,14 @@ const CheckoutPage = () => {
             <textarea name="notes" value={formData.notes} onChange={handleChange} placeholder="Alguma observação para o restaurante?" className="w-full p-3 rounded-lg border border-border bg-background text-foreground resize-none" rows={3} />
           </div>
 
-          <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isLoading}>
+          <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isLoading || !isCompanyOpen}>
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+            ) : !isCompanyOpen ? (
+              <>
+                <AlertCircle className="w-5 h-5 mr-2" />
+                Loja fechada
+              </>
             ) : (
               <>
                 <MessageCircle className="w-5 h-5 mr-2" />

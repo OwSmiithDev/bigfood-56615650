@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, User, Phone, MessageCircle, ShoppingBag, Ticket, X, Check, LogIn } from "lucide-react";
@@ -21,8 +21,10 @@ const CheckoutPage = () => {
   const validateCoupon = useValidateCoupon();
   const incrementCouponUsage = useIncrementCouponUsage();
 
-  // Ref to prevent double submission
+  // Ref to prevent double submission - using both ref and state for iOS compatibility
   const isSubmittingRef = useRef(false);
+  const lastSubmitTimeRef = useRef(0);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -71,7 +73,7 @@ const CheckoutPage = () => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const generateWhatsAppMessage = () => {
+  const generateWhatsAppMessage = useCallback(() => {
     let message = `🍔 *Novo Pedido - ${companyName}*\n\n`;
     message += `👤 *Cliente:* ${formData.name}\n`;
     message += `📱 *Telefone:* ${formData.phone}\n\n`;
@@ -109,7 +111,7 @@ const CheckoutPage = () => {
     }
 
     return encodeURIComponent(message);
-  };
+  }, [companyName, formData, orderType, paymentMethod, cashChangeFor, items, total, appliedCoupon, finalTotal]);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim() || !companyId) return;
@@ -149,15 +151,27 @@ const CheckoutPage = () => {
     setCouponCode("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    // Prevent double submission
-    if (isSubmittingRef.current || isLoading) {
+    // Multiple guards against double submission (especially for iOS)
+    const now = Date.now();
+    if (isSubmittingRef.current || isLoading || isSubmitted) {
+      console.log("Prevented duplicate submit - flags");
       return;
     }
     
+    // Debounce: prevent submits within 2 seconds of each other
+    if (now - lastSubmitTimeRef.current < 2000) {
+      console.log("Prevented duplicate submit - debounce");
+      return;
+    }
+    
+    // Set all guards immediately
     isSubmittingRef.current = true;
+    lastSubmitTimeRef.current = now;
+    setIsSubmitted(true);
     setIsLoading(true);
 
     try {
@@ -217,18 +231,25 @@ const CheckoutPage = () => {
 
       clearCart();
       navigate("/home");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Erro ao criar pedido";
       toast({
         title: "Erro",
-        description: error.message || "Erro ao criar pedido",
+        description: errorMessage,
         variant: "destructive",
       });
-      // Reset the ref on error so user can try again
+      // Reset the guards on error so user can try again
       isSubmittingRef.current = false;
+      setIsSubmitted(false);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    isLoading, isSubmitted, paymentMethod, cashChangeFor, formData, 
+    companyId, user?.id, orderType, total, appliedCoupon, finalTotal, 
+    items, companyPhone, createOrder, incrementCouponUsage, clearCart, 
+    navigate, toast, generateWhatsAppMessage
+  ]);
 
   // Show loading while checking auth
   if (authLoading) {

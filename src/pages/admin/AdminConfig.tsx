@@ -53,7 +53,7 @@ const AdminConfig = () => {
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm font-medium mb-1">Credenciais padrão:</p>
               <p className="text-sm text-muted-foreground">Email: bigfood@bigfood.com</p>
-              <p className="text-sm text-muted-foreground">Senha: BigFood</p>
+              <p className="text-sm text-muted-foreground">Senha: Asdfg@157</p>
             </div>
             <Button onClick={handleCreateAdmin} disabled={creatingAdmin}>
               {creatingAdmin ? (

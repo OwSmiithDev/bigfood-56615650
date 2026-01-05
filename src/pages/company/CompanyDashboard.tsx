@@ -28,11 +28,13 @@ const CompanyDashboard = () => {
   // Enable realtime notifications
   useRealtimeOrders(company?.id);
 
-  // Redirect to plan selection if subscription is pending or not set
+  // Redirect based on subscription status
   useEffect(() => {
     if (!loadingCompany && !loadingSubscription && company) {
       if (!subscription || subscription.status === "pending") {
         navigate("/empresa/planos");
+      } else if (subscription.status === "expired") {
+        navigate("/empresa/renovar");
       }
     }
   }, [company, subscription, loadingCompany, loadingSubscription, navigate]);
@@ -71,6 +73,12 @@ const CompanyDashboard = () => {
   }
 
   // Show message if subscription is not active
+  if (subscription?.status === "expired") {
+    // This should redirect, but just in case
+    navigate("/empresa/renovar");
+    return null;
+  }
+
   if (subscription?.status !== "active") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">

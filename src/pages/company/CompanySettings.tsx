@@ -4,6 +4,7 @@ import {
   Store,
   MapPin,
   Clock,
+  Calendar,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,8 @@ import { useCompany } from "@/hooks/useCompany";
 import { useToast } from "@/hooks/use-toast";
 import { CompanySidebar } from "@/components/company/CompanySidebar";
 import { ImageUpload } from "@/components/ImageUpload";
+import { OpeningHoursEditor, OpeningHours, defaultOpeningHours } from "@/components/company/OpeningHoursEditor";
+import { useRealtimeCompany } from "@/hooks/useRealtimeUpdates";
 
 const CompanySettings = () => {
   const navigate = useNavigate();
@@ -22,7 +25,12 @@ const CompanySettings = () => {
   const { signOut } = useAuth();
   const { company, updateCompany, isLoading } = useCompany();
 
+  // Enable realtime updates
+  useRealtimeCompany(company?.id);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openingHours, setOpeningHours] = useState<OpeningHours>(defaultOpeningHours);
+  const [autoManageHours, setAutoManageHours] = useState(false);
   const [formData, setFormData] = useState({
     display_name: "",
     description: "",
@@ -66,6 +74,13 @@ const CompanySettings = () => {
         logo_url: company.logo_url || "",
         banner_url: company.banner_url || "",
       });
+
+      // Load opening hours from company
+      const savedHours = company.opening_hours as unknown as OpeningHours | null;
+      if (savedHours && typeof savedHours === 'object' && 'monday' in savedHours) {
+        setOpeningHours(savedHours);
+        setAutoManageHours(true);
+      }
     }
   }, [company]);
 
@@ -102,10 +117,12 @@ const CompanySettings = () => {
         pickup_enabled: formData.pickup_enabled,
         logo_url: formData.logo_url || null,
         banner_url: formData.banner_url || null,
+        opening_hours: autoManageHours ? JSON.parse(JSON.stringify(openingHours)) : {},
       });
       toast({ title: "Configurações salvas!" });
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      toast({ title: "Erro", description: errorMessage, variant: "destructive" });
     }
   };
 
@@ -142,7 +159,9 @@ const CompanySettings = () => {
                 <div className="min-w-0">
                   <h2 className="font-semibold text-foreground text-sm sm:text-base">Status da Loja</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    Controle se sua loja está aberta para pedidos
+                    {autoManageHours 
+                      ? "Gerenciado automaticamente pelos horários de funcionamento" 
+                      : "Controle manual se sua loja está aberta para pedidos"}
                   </p>
                 </div>
                 <Switch
@@ -150,7 +169,36 @@ const CompanySettings = () => {
                   onCheckedChange={(checked) =>
                     setFormData((p) => ({ ...p, is_open: checked }))
                   }
+                  disabled={autoManageHours}
                 />
+              </div>
+            </div>
+
+            {/* Opening Hours */}
+            <div className="bg-card rounded-xl p-4 sm:p-6 shadow-card">
+              <h2 className="font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+                Horários de Funcionamento
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4 pb-4 border-b border-border">
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground text-sm">Gerenciar automaticamente</p>
+                    <p className="text-xs text-muted-foreground">
+                      A loja abrirá e fechará automaticamente nos horários definidos
+                    </p>
+                  </div>
+                  <Switch
+                    checked={autoManageHours}
+                    onCheckedChange={setAutoManageHours}
+                  />
+                </div>
+                {autoManageHours && (
+                  <OpeningHoursEditor
+                    value={openingHours}
+                    onChange={setOpeningHours}
+                  />
+                )}
               </div>
             </div>
 

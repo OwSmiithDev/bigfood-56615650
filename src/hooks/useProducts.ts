@@ -1,8 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { useRealtimeUpdates } from "./useRealtimeUpdates";
 
 export const useProducts = (companyId?: string) => {
+  // Enable realtime updates for products
+  useRealtimeUpdates({
+    table: "products",
+    queryKey: ["products", companyId || ""],
+    companyId,
+  });
+
   return useQuery({
     queryKey: ["products", companyId],
     queryFn: async () => {
@@ -24,6 +32,13 @@ export const useProducts = (companyId?: string) => {
 };
 
 export const useProductCategories = (companyId?: string) => {
+  // Enable realtime updates for categories
+  useRealtimeUpdates({
+    table: "product_categories",
+    queryKey: ["product_categories", companyId || ""],
+    companyId,
+  });
+
   return useQuery({
     queryKey: ["product_categories", companyId],
     queryFn: async () => {

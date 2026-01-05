@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Check, Crown, Sparkles, ArrowRight } from "lucide-react";
+import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany, useSubscription } from "@/hooks/useCompany";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { PLANS, Plan } from "@/constants/plans";
 
 const ChoosePlanPage = () => {
   const navigate = useNavigate();
@@ -15,33 +16,10 @@ const ChoosePlanPage = () => {
   const { company, isLoading: companyLoading } = useCompany();
   const { data: subscription } = useSubscription(company?.id);
   const { toast } = useToast();
-  const [selectedPlan, setSelectedPlan] = useState<"free" | "premium" | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<Plan["id"] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const plans = [
-    {
-      id: "free" as const,
-      name: "Plano Free",
-      price: 0,
-      priceLabel: "Grátis",
-      description: "Perfeito para começar",
-      features: ["Até 5 produtos cadastrados", "Suporte por email", "Painel básico"],
-      icon: Sparkles,
-      popular: false,
-    },
-    {
-      id: "premium" as const,
-      name: "Plano Premium",
-      price: 50,
-      priceLabel: "R$ 50/mês",
-      description: "Para negócios em crescimento",
-      features: ["Até 10 produtos cadastrados", "Suporte prioritário", "Destaque no app", "Relatórios avançados"],
-      icon: Crown,
-      popular: true,
-    },
-  ];
-
-  const handleSelectPlan = async (planId: "free" | "premium") => {
+  const handleSelectPlan = async (planId: Plan["id"]) => {
     setSelectedPlan(planId);
     
     if (planId === "free") {
@@ -62,7 +40,7 @@ const ChoosePlanPage = () => {
         }
         
         toast({
-          title: "Plano Free ativado!",
+          title: "Plano Grátis ativado!",
           description: "Você pode cadastrar até 5 produtos.",
         });
         
@@ -82,8 +60,8 @@ const ChoosePlanPage = () => {
         setIsLoading(false);
       }
     } else {
-      // Premium plan - redirect to payment page
-      navigate("/empresa/pagamento");
+      // Premium or Professional plan - redirect to payment page with plan info
+      navigate(`/empresa/pagamento?plano=${planId}`);
     }
   };
 
@@ -103,7 +81,7 @@ const ChoosePlanPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-hero py-12 px-4">
-      <div className="container mx-auto max-w-4xl">
+      <div className="container mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -117,8 +95,8 @@ const ChoosePlanPage = () => {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {plans.map((plan, index) => (
+        <div className="grid md:grid-cols-3 gap-6">
+          {PLANS.map((plan, index) => (
             <motion.div
               key={plan.id}
               initial={{ opacity: 0, y: 20 }}
@@ -126,26 +104,34 @@ const ChoosePlanPage = () => {
               transition={{ delay: index * 0.1 }}
             >
               <Card
-                className={`relative p-6 cursor-pointer transition-all hover:shadow-lg ${
+                className={`relative p-6 cursor-pointer transition-all hover:shadow-lg h-full flex flex-col ${
                   selectedPlan === plan.id
                     ? "ring-2 ring-primary shadow-lg"
                     : "hover:border-primary/50"
-                } ${plan.popular ? "border-primary" : ""}`}
+                } ${plan.recommended ? "border-primary" : ""}`}
                 onClick={() => setSelectedPlan(plan.id)}
               >
-                {plan.popular && (
+                {plan.recommended && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
-                      Mais Popular
+                      Recomendado
+                    </span>
+                  </div>
+                )}
+
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-accent text-accent-foreground text-xs font-semibold px-3 py-1 rounded-full">
+                      Popular
                     </span>
                   </div>
                 )}
 
                 <div className="flex items-center gap-3 mb-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    plan.popular ? "bg-primary/10" : "bg-muted"
+                    plan.recommended ? "bg-primary/10" : "bg-muted"
                   }`}>
-                    <plan.icon className={`w-6 h-6 ${plan.popular ? "text-primary" : "text-muted-foreground"}`} />
+                    <plan.icon className={`w-6 h-6 ${plan.recommended ? "text-primary" : "text-muted-foreground"}`} />
                   </div>
                   <div>
                     <h3 className="font-display text-xl font-bold">{plan.name}</h3>
@@ -159,19 +145,19 @@ const ChoosePlanPage = () => {
                   </span>
                 </div>
 
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-3 mb-6 flex-grow">
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm">
-                      <Check className="w-4 h-4 text-primary" />
+                      <Check className="w-4 h-4 text-primary flex-shrink-0" />
                       <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
 
                 <Button
-                  variant={plan.popular ? "hero" : "outline"}
+                  variant={plan.recommended ? "hero" : "outline"}
                   size="lg"
-                  className="w-full"
+                  className="w-full mt-auto"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleSelectPlan(plan.id);
@@ -182,7 +168,7 @@ const ChoosePlanPage = () => {
                     <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                   ) : (
                     <>
-                      {plan.id === "free" ? "Começar Grátis" : "Escolher Premium"}
+                      {plan.id === "free" ? "Começar Grátis" : `Escolher ${plan.name.replace("Plano ", "")}`}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}

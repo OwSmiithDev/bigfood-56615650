@@ -7,8 +7,9 @@ import {
   Package,
   X,
   Menu,
+  ArrowUpCircle,
 } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,10 +27,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { CompanySidebar } from "@/components/company/CompanySidebar";
 import { ImageUpload } from "@/components/ImageUpload";
+import { getProductLimit, canAddMoreProducts, getPlanById } from "@/constants/plans";
 
 const CompanyProducts = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
   const { signOut } = useAuth();
   const { company } = useCompany();
@@ -42,11 +43,14 @@ const CompanyProducts = () => {
   const createCategory = useCreateCategory();
   const deleteCategory = useDeleteCategory();
 
-  // Get product limit from plan - only count if subscription is active
+  // Get product limit from plan using constants
   const isSubscriptionActive = subscription?.status === "active";
-  const maxProducts = subscription?.plans?.max_products || 0;
+  const planId = subscription?.plan_id || "free";
+  const currentPlan = getPlanById(planId);
+  const maxProducts = currentPlan?.maxProducts;
   const currentProductCount = products?.length || 0;
-  const canAddProduct = isSubscriptionActive && (!maxProducts || currentProductCount < maxProducts);
+  const canAddProduct = isSubscriptionActive && canAddMoreProducts(planId, currentProductCount);
+  const isAtLimit = maxProducts !== null && currentProductCount >= maxProducts;
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -202,12 +206,12 @@ const CompanyProducts = () => {
                 size="sm"
                 onClick={() => openProductModal()}
                 disabled={!canAddProduct}
-                title={!canAddProduct ? `Limite de ${maxProducts} produtos atingido` : undefined}
+                title={!canAddProduct ? `Limite de ${maxProducts ?? "?"} produtos atingido` : undefined}
                 className="text-xs sm:text-sm px-2 sm:px-3"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
                 <span className="hidden sm:inline">Produto</span>
-                {maxProducts && (
+                {maxProducts !== null && (
                   <span className="ml-1 text-xs opacity-80">
                     ({currentProductCount}/{maxProducts})
                   </span>
@@ -218,6 +222,29 @@ const CompanyProducts = () => {
         </header>
 
         <div className="flex-1 p-3 sm:p-4 lg:p-8 overflow-y-auto">
+          {/* Upgrade Banner when at limit */}
+          {isAtLimit && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <ArrowUpCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Limite de produtos atingido</p>
+                  <p className="text-xs text-muted-foreground">
+                    Seu plano {currentPlan?.name} permite até {maxProducts} produtos. Faça upgrade para adicionar mais.
+                  </p>
+                </div>
+              </div>
+              <Link to="/empresa/planos">
+                <Button variant="hero" size="sm" className="whitespace-nowrap">
+                  Fazer upgrade
+                </Button>
+              </Link>
+            </motion.div>
+          )}
           {/* Categories Filter */}
           {categories && categories.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-3 sm:pb-4 mb-4 sm:mb-6 scrollbar-hide -mx-3 sm:-mx-4 lg:-mx-8 px-3 sm:px-4 lg:px-8">

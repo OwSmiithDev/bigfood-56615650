@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, CreditCard, QrCode, Crown, MessageCircle } from "lucide-react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { ArrowLeft, CreditCard, QrCode, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,11 +9,16 @@ import { useCompany, useSubscription } from "@/hooks/useCompany";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { PLANS, getPlanById } from "@/constants/plans";
 
 type PaymentMethod = "pix" | "card";
 
 const PaymentPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const planId = searchParams.get("plano") || "premium";
+  const selectedPlan = getPlanById(planId) || PLANS.find(p => p.id === "premium")!;
+  
   const { user } = useAuth();
   const { company } = useCompany();
   const { data: subscription } = useSubscription(company?.id);
@@ -64,12 +69,12 @@ const PaymentPage = () => {
     setIsLoading(true);
 
     try {
-      // Update subscription to premium with pending status
+      // Update subscription with selected plan and pending status
       if (subscription?.id) {
         const { error } = await supabase
           .from("subscriptions")
           .update({ 
-            plan_id: "premium", 
+            plan_id: selectedPlan.id, 
             status: "pending",
             notes: `Forma de pagamento: ${paymentMethod === "pix" ? "PIX" : "Cartão"}`,
           })
@@ -82,9 +87,10 @@ const PaymentPage = () => {
       const responsibleName = profile?.name || user?.email?.split("@")[0] || "Não informado";
       const companyName = company?.display_name || company?.business_name || "Não informado";
       const paymentLabel = paymentMethod === "pix" ? "PIX" : "CARTÃO";
+      const priceLabel = selectedPlan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
       const message = encodeURIComponent(
-        `Olá, quero fazer a ativação do meu plano por 50 reais por mês.\n\n` +
+        `Olá, quero fazer a ativação do ${selectedPlan.name} por R$ ${priceLabel} por mês.\n\n` +
         `Forma de pagamento: ${paymentLabel}\n` +
         `Meu nome é: ${responsibleName}\n` +
         `Dono da empresa: ${companyName}`
@@ -139,17 +145,24 @@ const PaymentPage = () => {
           <Card className="p-6 mb-6 bg-primary/5 border-primary/20">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Crown className="w-7 h-7 text-primary" />
+                <selectedPlan.icon className="w-7 h-7 text-primary" />
               </div>
               <div>
-                <h2 className="font-display text-xl font-bold">Plano Premium</h2>
-                <p className="text-muted-foreground">Até 10 produtos • Suporte prioritário</p>
+                <h2 className="font-display text-xl font-bold">{selectedPlan.name}</h2>
+                <p className="text-muted-foreground text-sm">
+                  {selectedPlan.maxProducts === null 
+                    ? "Produtos ilimitados" 
+                    : `Até ${selectedPlan.maxProducts} produtos`
+                  } • {selectedPlan.description}
+                </p>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-border">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Total mensal</span>
-                <span className="font-display text-2xl font-bold text-primary">R$ 50,00</span>
+                <span className="font-display text-2xl font-bold text-primary">
+                  R$ {selectedPlan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
               </div>
             </div>
           </Card>

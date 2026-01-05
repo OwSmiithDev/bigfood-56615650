@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, User, Phone, Store, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import authBackground from "@/assets/auth-background.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -136,22 +137,24 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-hero flex">
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-primary relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-64 h-64 bg-primary-foreground/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-80 h-80 bg-primary-foreground/10 rounded-full blur-3xl" />
-        </div>
-        <div className="relative z-10 flex flex-col justify-center p-12 text-primary-foreground">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        <img 
+          src={authBackground} 
+          alt="Fundo com pratos de comida" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="relative z-10 flex flex-col justify-center p-12 text-white">
           <Link to="/" className="flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
               <span className="font-display font-bold text-2xl">B</span>
             </div>
             <span className="font-display font-bold text-2xl">BigFood</span>
           </Link>
-          <h1 className="font-display text-4xl font-bold mb-4">
+          <h1 className="font-display text-4xl font-bold mb-4 drop-shadow-lg">
             {userType === "company" ? "Leve seu negócio para o próximo nível" : "Descubra os melhores sabores"}
           </h1>
-          <p className="text-lg opacity-90">
+          <p className="text-lg opacity-90 drop-shadow-md">
             {userType === "company" ? "Gerencie seu restaurante e cresça suas vendas." : "Encontre restaurantes incríveis perto de você."}
           </p>
         </div>

@@ -31,8 +31,9 @@ const HeroSection = () => {
             y: 0
           }} transition={{
             delay: 0.2
-          }} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 text-primary font-semibold text-sm mb-6">Mais de 100 restaurantes parceiros<Star className="w-4 h-4 fill-current" />
-              Mais de 500 restaurantes parceiros
+          }} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 text-primary font-semibold text-sm mb-6">
+              <Star className="w-4 h-4 fill-current" />
+              Mais de 100 restaurantes parceiros
             </motion.div>
 
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight mb-6">

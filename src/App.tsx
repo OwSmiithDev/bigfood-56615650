@@ -27,6 +27,7 @@ import ChoosePlanPage from "./pages/company/ChoosePlanPage";
 import PaymentPage from "./pages/company/PaymentPage";
 import ManagePlanPage from "./pages/company/ManagePlanPage";
 import RenewPlanPage from "./pages/company/RenewPlanPage";
+import CompanyNotifications from "./pages/company/CompanyNotifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,7 @@ const App = () => (
               <Route path="/empresa/renovar" element={<ProtectedCompanyRoute><RenewPlanPage /></ProtectedCompanyRoute>} />
               <Route path="/empresa/produtos" element={<ProtectedCompanyRoute><CompanyProducts /></ProtectedCompanyRoute>} />
               <Route path="/empresa/pedidos" element={<ProtectedCompanyRoute><CompanyOrders /></ProtectedCompanyRoute>} />
+              <Route path="/empresa/notificacoes" element={<ProtectedCompanyRoute><CompanyNotifications /></ProtectedCompanyRoute>} />
               <Route path="/empresa/avaliacoes" element={<ProtectedCompanyRoute><CompanyReviews /></ProtectedCompanyRoute>} />
               <Route path="/empresa/config" element={<ProtectedCompanyRoute><CompanySettings /></ProtectedCompanyRoute>} />
               

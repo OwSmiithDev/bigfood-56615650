@@ -27,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserOrders } from "@/hooks/useOrders";
 import { useOrderReview, useCreateReview } from "@/hooks/useReviews";
+import { useCustomerOrderUpdates } from "@/hooks/useRealtimeOrderUpdates";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -171,6 +172,9 @@ const OrderHistory = () => {
   const { data: orders, isLoading } = useUserOrders(user?.id);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+
+  // Enable real-time order status updates
+  useCustomerOrderUpdates(user?.id);
 
   const handleLogout = async () => {
     await signOut();

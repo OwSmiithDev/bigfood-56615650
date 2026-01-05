@@ -25,6 +25,8 @@ import CompanyReviews from "./pages/company/CompanyReviews";
 import CompanySettings from "./pages/company/CompanySettings";
 import ChoosePlanPage from "./pages/company/ChoosePlanPage";
 import PaymentPage from "./pages/company/PaymentPage";
+import ManagePlanPage from "./pages/company/ManagePlanPage";
+import RenewPlanPage from "./pages/company/RenewPlanPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,7 +41,7 @@ const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const ProtectedCompanyRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedCompanyRoute = ({ children, allowExpired = false }: { children: React.ReactNode; allowExpired?: boolean }) => {
   const { user, loading, isCompany } = useAuth();
   
   if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
@@ -79,6 +81,8 @@ const App = () => (
               <Route path="/empresa" element={<ProtectedCompanyRoute><CompanyDashboard /></ProtectedCompanyRoute>} />
               <Route path="/empresa/planos" element={<ProtectedCompanyRoute><ChoosePlanPage /></ProtectedCompanyRoute>} />
               <Route path="/empresa/pagamento" element={<ProtectedCompanyRoute><PaymentPage /></ProtectedCompanyRoute>} />
+              <Route path="/empresa/gerenciar-plano" element={<ProtectedCompanyRoute><ManagePlanPage /></ProtectedCompanyRoute>} />
+              <Route path="/empresa/renovar" element={<ProtectedCompanyRoute><RenewPlanPage /></ProtectedCompanyRoute>} />
               <Route path="/empresa/produtos" element={<ProtectedCompanyRoute><CompanyProducts /></ProtectedCompanyRoute>} />
               <Route path="/empresa/pedidos" element={<ProtectedCompanyRoute><CompanyOrders /></ProtectedCompanyRoute>} />
               <Route path="/empresa/avaliacoes" element={<ProtectedCompanyRoute><CompanyReviews /></ProtectedCompanyRoute>} />

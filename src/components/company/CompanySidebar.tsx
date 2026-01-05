@@ -6,9 +6,11 @@ import {
   Settings,
   LogOut,
   Star,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCompany } from "@/hooks/useCompany";
+import { useCompany, useSubscription } from "@/hooks/useCompany";
+import { getPlanById } from "@/constants/plans";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/empresa" },
@@ -29,10 +31,17 @@ export const CompanySidebar = ({ isOpen, onClose, pendingOrders = 0 }: CompanySi
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { company } = useCompany();
+  const { data: subscription } = useSubscription(company?.id);
+
+  const currentPlan = getPlanById(subscription?.plan_id || "free");
 
   const handleLogout = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleManagePlan = () => {
+    navigate("/empresa/gerenciar-plano");
   };
 
   return (
@@ -73,6 +82,19 @@ export const CompanySidebar = ({ isOpen, onClose, pendingOrders = 0 }: CompanySi
                   {company?.category || "Restaurante"}
                 </p>
               </div>
+              <button
+                onClick={handleManagePlan}
+                className="p-2 rounded-lg hover:bg-primary/10 transition-colors group"
+                title="Gerenciar Plano"
+              >
+                <Crown className="w-5 h-5 text-yellow-500 group-hover:text-yellow-400" />
+              </button>
+            </div>
+            {/* Current Plan Badge */}
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
+                {currentPlan?.name || "Plano Grátis"}
+              </span>
             </div>
           </div>
 

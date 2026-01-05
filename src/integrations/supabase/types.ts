@@ -211,6 +211,50 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          data: Json | null
+          id: string
+          is_read: boolean | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -421,9 +465,11 @@ export type Database = {
           featured: boolean | null
           id: string
           image_url: string | null
+          min_stock: number | null
           name: string
           price: number
           sort_order: number | null
+          stock_quantity: number | null
           updated_at: string
         }
         Insert: {
@@ -435,9 +481,11 @@ export type Database = {
           featured?: boolean | null
           id?: string
           image_url?: string | null
+          min_stock?: number | null
           name: string
           price: number
           sort_order?: number | null
+          stock_quantity?: number | null
           updated_at?: string
         }
         Update: {
@@ -449,9 +497,11 @@ export type Database = {
           featured?: boolean | null
           id?: string
           image_url?: string | null
+          min_stock?: number | null
           name?: string
           price?: number
           sort_order?: number | null
+          stock_quantity?: number | null
           updated_at?: string
         }
         Relationships: [

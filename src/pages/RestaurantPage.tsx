@@ -68,9 +68,12 @@ const RestaurantPage = () => {
   const isRestaurantOpen = restaurant?.is_open && isWithinOpeningHours(restaurant?.opening_hours);
   const nextOpeningTime = !isRestaurantOpen ? getNextOpeningTime(restaurant?.opening_hours) : null;
 
+  // Filter out unavailable products (available = false)
+  const availableProducts = products?.filter((p) => p.available !== false);
+  
   const filteredProducts = selectedCategory
-    ? products?.filter((p) => p.category_id === selectedCategory)
-    : products;
+    ? availableProducts?.filter((p) => p.category_id === selectedCategory)
+    : availableProducts;
 
   const handleAddToCart = () => {
     if (!selectedProduct || !restaurant) return;

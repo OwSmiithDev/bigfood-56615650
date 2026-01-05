@@ -7,15 +7,19 @@ import {
   LogOut,
   Star,
   Crown,
+  Bell,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany, useSubscription } from "@/hooks/useCompany";
+import { useNotifications } from "@/hooks/useNotifications";
 import { getPlanById } from "@/constants/plans";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/empresa" },
   { icon: Package, label: "Produtos", path: "/empresa/produtos" },
   { icon: ShoppingBag, label: "Pedidos", path: "/empresa/pedidos" },
+  { icon: Bell, label: "Notificações", path: "/empresa/notificacoes" },
   { icon: Star, label: "Avaliações", path: "/empresa/avaliacoes" },
   { icon: Settings, label: "Configurações", path: "/empresa/config" },
 ];
@@ -29,9 +33,10 @@ interface CompanySidebarProps {
 export const CompanySidebar = ({ isOpen, onClose, pendingOrders = 0 }: CompanySidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { company } = useCompany();
   const { data: subscription } = useSubscription(company?.id);
+  const { unreadCount } = useNotifications(user?.id);
 
   const currentPlan = getPlanById(subscription?.plan_id || "free");
 
@@ -101,6 +106,8 @@ export const CompanySidebar = ({ isOpen, onClose, pendingOrders = 0 }: CompanySi
           <nav className="flex-1 p-4 space-y-1">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
+              const showOrderBadge = item.path === "/empresa/pedidos" && pendingOrders > 0;
+              const showNotificationBadge = item.path === "/empresa/notificacoes" && unreadCount > 0;
               const showBadge = item.path === "/empresa/pedidos" && pendingOrders > 0;
               
               return (
@@ -116,10 +123,18 @@ export const CompanySidebar = ({ isOpen, onClose, pendingOrders = 0 }: CompanySi
                 >
                   <item.icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
-                  {showBadge && (
+                  {showOrderBadge && (
                     <span className="absolute right-4 flex items-center justify-center w-5 h-5 text-xs font-bold bg-destructive text-destructive-foreground rounded-full">
                       {pendingOrders > 9 ? "9+" : pendingOrders}
                     </span>
+                  )}
+                  {showNotificationBadge && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute right-4 h-5 min-w-[20px] px-1.5"
+                    >
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </Badge>
                   )}
                 </Link>
               );

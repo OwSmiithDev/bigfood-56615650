@@ -8,7 +8,10 @@ import {
   X,
   Menu,
   ArrowUpCircle,
+  Power,
+  AlertTriangle,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +67,9 @@ const CompanyProducts = () => {
     price: "",
     category_id: "",
     image_url: "",
+    available: true,
+    stock_quantity: "",
+    min_stock: "",
   });
 
   const [categoryForm, setCategoryForm] = useState({ name: "", description: "" });
@@ -82,6 +88,9 @@ const CompanyProducts = () => {
         price: product.price.toString(),
         category_id: product.category_id || "",
         image_url: product.image_url || "",
+        available: product.available ?? true,
+        stock_quantity: product.stock_quantity?.toString() || "",
+        min_stock: product.min_stock?.toString() || "",
       });
     } else {
       setEditingProduct(null);
@@ -91,6 +100,9 @@ const CompanyProducts = () => {
         price: "",
         category_id: "",
         image_url: "",
+        available: true,
+        stock_quantity: "",
+        min_stock: "",
       });
     }
     setShowProductModal(true);
@@ -120,6 +132,12 @@ const CompanyProducts = () => {
     }
 
     try {
+      const stockQty = productForm.stock_quantity ? parseInt(productForm.stock_quantity) : null;
+      const minStock = productForm.min_stock ? parseInt(productForm.min_stock) : null;
+      
+      // Auto-disable if stock is 0
+      const isAvailable = stockQty !== null && stockQty <= 0 ? false : productForm.available;
+      
       const data = {
         name: productForm.name,
         description: productForm.description || null,
@@ -127,6 +145,9 @@ const CompanyProducts = () => {
         category_id: productForm.category_id || null,
         image_url: productForm.image_url || null,
         company_id: company.id,
+        available: isAvailable,
+        stock_quantity: stockQty,
+        min_stock: minStock,
       };
 
       if (editingProduct) {
@@ -137,6 +158,30 @@ const CompanyProducts = () => {
         toast({ title: "Produto criado!" });
       }
       setShowProductModal(false);
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleToggleAvailable = async (product: any) => {
+    try {
+      // Don't allow enabling if stock is 0
+      if (!product.available && product.stock_quantity !== null && product.stock_quantity <= 0) {
+        toast({
+          title: "Estoque zerado",
+          description: "Adicione estoque antes de ativar o produto.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      await updateProduct.mutateAsync({
+        id: product.id,
+        available: !product.available,
+      });
+      toast({
+        title: product.available ? "Produto desativado" : "Produto ativado",
+      });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
@@ -281,13 +326,40 @@ const CompanyProducts = () => {
             </div>
           ) : filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-              {filteredProducts.map((product) => (
+              {filteredProducts.map((product) => {
+                const isLowStock = product.stock_quantity !== null && 
+                  product.min_stock !== null && 
+                  product.stock_quantity <= product.min_stock && 
+                  product.stock_quantity > 0;
+                const isOutOfStock = product.stock_quantity !== null && product.stock_quantity <= 0;
+                
+                return (
                 <motion.div
                   key={product.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-card rounded-xl overflow-hidden shadow-card"
+                  className={`bg-card rounded-xl overflow-hidden shadow-card relative ${!product.available ? 'opacity-60' : ''}`}
                 >
+                  {/* Status badges */}
+                  <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+                    {!product.available && (
+                      <span className="px-2 py-0.5 bg-muted/90 text-muted-foreground text-xs rounded-full font-medium">
+                        Desativado
+                      </span>
+                    )}
+                    {isOutOfStock && (
+                      <span className="px-2 py-0.5 bg-destructive/90 text-destructive-foreground text-xs rounded-full font-medium">
+                        Sem estoque
+                      </span>
+                    )}
+                    {isLowStock && !isOutOfStock && (
+                      <span className="px-2 py-0.5 bg-orange-500/90 text-white text-xs rounded-full font-medium flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Estoque baixo
+                      </span>
+                    )}
+                  </div>
+                  
                   {product.image_url ? (
                     <img
                       src={product.image_url}
@@ -308,25 +380,37 @@ const CompanyProducts = () => {
                         <p className="text-primary font-bold mt-1 text-sm sm:text-base">
                           R$ {product.price.toFixed(2).replace(".", ",")}
                         </p>
+                        {product.stock_quantity !== null && (
+                          <p className={`text-xs mt-1 ${isOutOfStock ? 'text-destructive' : isLowStock ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                            Estoque: {product.stock_quantity} un.
+                          </p>
+                        )}
                       </div>
-                      <div className="flex gap-1 shrink-0">
-                        <button
-                          onClick={() => openProductModal(product)}
-                          className="p-1.5 sm:p-2 rounded-lg hover:bg-muted"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="p-1.5 sm:p-2 rounded-lg hover:bg-destructive/10"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-destructive" />
-                        </button>
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <Switch
+                          checked={product.available}
+                          onCheckedChange={() => handleToggleAvailable(product)}
+                          className="data-[state=checked]:bg-green-500"
+                        />
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => openProductModal(product)}
+                            className="p-1.5 sm:p-2 rounded-lg hover:bg-muted"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(product.id)}
+                            className="p-1.5 sm:p-2 rounded-lg hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-destructive" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </motion.div>
-              ))}
+              )})}
             </div>
           ) : (
             <div className="text-center py-12">
@@ -435,6 +519,62 @@ const CompanyProducts = () => {
                       folder="products"
                     />
                   </div>
+                </div>
+
+                {/* Stock Control Section */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Controle de Estoque
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-sm">Quantidade em Estoque</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Ilimitado"
+                        value={productForm.stock_quantity}
+                        onChange={(e) =>
+                          setProductForm((p) => ({ ...p, stock_quantity: e.target.value }))
+                        }
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Estoque Mínimo</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Opcional"
+                        value={productForm.min_stock}
+                        onChange={(e) =>
+                          setProductForm((p) => ({ ...p, min_stock: e.target.value }))
+                        }
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Deixe em branco para estoque ilimitado. O produto será desativado automaticamente quando o estoque chegar a 0.
+                  </p>
+                </div>
+
+                {/* Availability Toggle */}
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div>
+                    <Label className="text-sm font-medium">Produto Disponível</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Produtos desativados não aparecem para clientes
+                    </p>
+                  </div>
+                  <Switch
+                    checked={productForm.available}
+                    onCheckedChange={(checked) =>
+                      setProductForm((p) => ({ ...p, available: checked }))
+                    }
+                    className="data-[state=checked]:bg-green-500"
+                  />
                 </div>
               </div>
 

@@ -35,14 +35,16 @@ import { useRealtimeAdminOrders } from "@/hooks/useRealtimeAdminOrders";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-type StatusFilter = "all" | "pending" | "confirmed" | "preparing" | "ready" | "delivered" | "canceled";
+type StatusFilter = "all" | "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled" | "canceled";
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   pending: { label: "Pendente", icon: Clock, color: "bg-yellow-500/10 text-yellow-600" },
   confirmed: { label: "Confirmado", icon: Package, color: "bg-blue-500/10 text-blue-600" },
   preparing: { label: "Preparando", icon: Package, color: "bg-orange-500/10 text-orange-600" },
   ready: { label: "Pronto", icon: CheckCircle2, color: "bg-green-500/10 text-green-600" },
+  out_for_delivery: { label: "Em entrega", icon: Package, color: "bg-primary/10 text-primary" },
   delivered: { label: "Entregue", icon: CheckCircle2, color: "bg-green-500/10 text-green-600" },
+  cancelled: { label: "Cancelado", icon: XCircle, color: "bg-red-500/10 text-red-600" },
   canceled: { label: "Cancelado", icon: XCircle, color: "bg-red-500/10 text-red-600" },
 };
 
@@ -137,8 +139,9 @@ const AdminOrders = () => {
             <SelectItem value="confirmed">Confirmados</SelectItem>
             <SelectItem value="preparing">Preparando</SelectItem>
             <SelectItem value="ready">Prontos</SelectItem>
+            <SelectItem value="out_for_delivery">Em entrega</SelectItem>
             <SelectItem value="delivered">Entregues</SelectItem>
-            <SelectItem value="canceled">Cancelados</SelectItem>
+            <SelectItem value="cancelled">Cancelados</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -158,7 +161,8 @@ const AdminOrders = () => {
           </Card>
         ) : (
           filteredOrders.map((order, index) => {
-            const status = statusConfig[order.status || "pending"];
+            const statusKey = order.status || "pending";
+            const status = statusConfig[statusKey] ?? statusConfig.pending;
             const StatusIcon = status.icon;
 
             return (

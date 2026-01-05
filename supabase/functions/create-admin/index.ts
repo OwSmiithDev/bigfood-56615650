@@ -22,8 +22,16 @@ serve(async (req) => {
       },
     });
 
-    const adminEmail = "bigfood@bigfood.com";
-    const adminPassword = "Asdfg@157";
+    const adminEmail = Deno.env.get("ADMIN_EMAIL");
+    const adminPassword = Deno.env.get("ADMIN_PASSWORD");
+
+    if (!adminEmail || !adminPassword) {
+      console.error("Missing ADMIN_EMAIL or ADMIN_PASSWORD environment variables");
+      return new Response(
+        JSON.stringify({ error: "Admin credentials not configured. Please set ADMIN_EMAIL and ADMIN_PASSWORD secrets." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
 
     // Check if admin user already exists
     const { data: existingUsers } = await supabase.auth.admin.listUsers();

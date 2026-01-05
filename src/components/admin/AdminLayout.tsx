@@ -16,6 +16,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/Logo";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
@@ -62,15 +63,13 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
         <div className="flex flex-col h-full">
           <div className="p-4 sm:p-6 shrink-0">
             <div className="flex items-center justify-between mb-6 sm:mb-8">
-              <Link to="/" className="flex items-center gap-2">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary flex items-center justify-center">
-                  <span className="font-display font-bold text-lg sm:text-xl text-primary-foreground">B</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <Logo size="sm" showText={false} />
                 <div>
                   <span className="font-display font-bold text-base sm:text-lg block">BigFood</span>
                   <span className="text-[10px] sm:text-xs text-muted-foreground">Admin</span>
                 </div>
-              </Link>
+              </div>
               <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1">
                 <X className="w-5 h-5" />
               </button>
@@ -122,9 +121,7 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
               <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="font-display font-bold text-sm sm:text-base text-primary-foreground">B</span>
-              </div>
+              <Logo size="sm" showText={false} />
               <span className="font-display font-bold text-base sm:text-lg">BigFood</span>
             </div>
             <div className="w-10" />

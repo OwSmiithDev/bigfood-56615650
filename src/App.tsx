@@ -28,6 +28,9 @@ import PaymentPage from "./pages/company/PaymentPage";
 import ManagePlanPage from "./pages/company/ManagePlanPage";
 import RenewPlanPage from "./pages/company/RenewPlanPage";
 import CompanyNotifications from "./pages/company/CompanyNotifications";
+import TermsOfUsePage from "./pages/TermsOfUsePage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import FAQPage from "./pages/FAQPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +72,9 @@ const App = () => (
               <Route path="/restaurante/:id" element={<RestaurantPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/cadastrar-empresa" element={<RegisterCompanyPage />} />
+              <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
+              <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
+              <Route path="/faq" element={<FAQPage />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />

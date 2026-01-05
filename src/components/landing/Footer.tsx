@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
-import { Instagram, Facebook, Linkedin, Mail, Phone } from "lucide-react";
+import { Instagram, Facebook, Linkedin, Mail, Phone, MessageCircle } from "lucide-react";
+import { ADMIN_CONTACT, getWhatsAppLink } from "@/constants/contact";
+
 const Footer = () => {
-  return <footer className="bg-foreground text-background py-16">
+  return (
+    <footer className="bg-foreground text-background py-16">
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           {/* Logo & Description */}
@@ -61,10 +64,32 @@ const Footer = () => {
           <div>
             <h4 className="font-display font-bold text-lg mb-4">Suporte</h4>
             <ul className="space-y-3 text-sm">
-              <li><a href="#" className="text-background/70 hover:text-background transition-colors">Central de ajuda</a></li>
-              <li><a href="#" className="text-background/70 hover:text-background transition-colors">Termos de uso</a></li>
-              <li><a href="#" className="text-background/70 hover:text-background transition-colors">Política de privacidade</a></li>
-              <li><a href="#" className="text-background/70 hover:text-background transition-colors">FAQ</a></li>
+              <li>
+                <a 
+                  href={getWhatsAppLink()} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-background/70 hover:text-background transition-colors flex items-center gap-2"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Central de ajuda
+                </a>
+              </li>
+              <li>
+                <Link to="/termos-de-uso" className="text-background/70 hover:text-background transition-colors">
+                  Termos de uso
+                </Link>
+              </li>
+              <li>
+                <Link to="/politica-de-privacidade" className="text-background/70 hover:text-background transition-colors">
+                  Política de privacidade
+                </Link>
+              </li>
+              <li>
+                <Link to="/faq" className="text-background/70 hover:text-background transition-colors">
+                  FAQ
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -72,13 +97,25 @@ const Footer = () => {
           <div>
             <h4 className="font-display font-bold text-lg mb-4">Contato</h4>
             <ul className="space-y-3 text-sm">
-              <li className="flex items-center gap-2 text-background/70">
-                <Mail className="w-4 h-4" />
-                Smiith.TechSolucoes@gmail.com
+              <li>
+                <a 
+                  href={`mailto:${ADMIN_CONTACT.email}`} 
+                  className="flex items-center gap-2 text-background/70 hover:text-background transition-colors"
+                >
+                  <Mail className="w-4 h-4" />
+                  {ADMIN_CONTACT.email}
+                </a>
               </li>
-              <li className="flex items-center gap-2 text-background/70">
-                <Phone className="w-4 h-4" />
-                (11) 99999-9999
+              <li>
+                <a 
+                  href={getWhatsAppLink()} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center gap-2 text-background/70 hover:text-background transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                  {ADMIN_CONTACT.phoneDisplay}
+                </a>
               </li>
             </ul>
           </div>
@@ -89,6 +126,8 @@ const Footer = () => {
           <p>© {new Date().getFullYear()} BigFood. Todos os direitos reservados.</p>
         </div>
       </div>
-    </footer>;
+    </footer>
+  );
 };
+
 export default Footer;

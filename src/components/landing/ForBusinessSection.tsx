@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Store, BarChart3, MessageSquare, Settings, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { PLANS } from "@/constants/plans";
 
 const features = [
   {
@@ -22,11 +23,15 @@ const features = [
   {
     icon: Settings,
     title: "Automações",
-    description: "Confirme pedidos automaticamente com n8n",
+    description: "Confirme pedidos automaticamente com n8n (Plano Profissional)",
   },
 ];
 
 const ForBusinessSection = () => {
+  const freePlan = PLANS.find(p => p.id === "free")!;
+  const premiumPlan = PLANS.find(p => p.id === "premium")!;
+  const professionalPlan = PLANS.find(p => p.id === "professional")!;
+
   return (
     <section id="empresas" className="py-20 bg-background relative overflow-hidden">
       {/* Background Decoration */}
@@ -36,7 +41,7 @@ const ForBusinessSection = () => {
       </div>
 
       <div className="container mx-auto px-4 relative">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Content */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -93,7 +98,7 @@ const ForBusinessSection = () => {
             {/* Free Plan */}
             <div className="p-6 rounded-2xl bg-card border border-border shadow-card">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display font-bold text-xl text-foreground">Grátis</h3>
+                <h3 className="font-display font-bold text-xl text-foreground">{freePlan.name}</h3>
                 <span className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-medium">
                   Popular
                 </span>
@@ -103,28 +108,39 @@ const ForBusinessSection = () => {
                 <span className="text-muted-foreground">/mês</span>
               </div>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-accent" />
-                  </div>
-                  Até 10 produtos
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-accent" />
-                  </div>
-                  Pedidos via WhatsApp
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-accent" />
-                  </div>
-                  Painel básico
-                </li>
+                {freePlan.features.map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center">
+                      <Check className="w-3 h-3 text-accent" />
+                    </div>
+                    {feature}
+                  </li>
+                ))}
               </ul>
             </div>
 
-            {/* Pro Plan */}
+            {/* Premium Plan */}
+            <div className="p-6 rounded-2xl bg-card border border-border shadow-card">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-display font-bold text-xl text-foreground">{premiumPlan.name}</h3>
+              </div>
+              <div className="mb-4">
+                <span className="text-3xl font-bold text-foreground">R$ 50</span>
+                <span className="text-muted-foreground">/mês</span>
+              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {premiumPlan.features.map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Check className="w-3 h-3 text-primary" />
+                    </div>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Professional Plan */}
             <div className="p-6 rounded-2xl bg-gradient-card border-2 border-primary shadow-hover relative">
               <div className="absolute -top-3 left-6">
                 <span className="px-3 py-1 rounded-full bg-gradient-primary text-primary-foreground text-sm font-bold">
@@ -132,37 +148,21 @@ const ForBusinessSection = () => {
                 </span>
               </div>
               <div className="flex items-center justify-between mb-4 pt-2">
-                <h3 className="font-display font-bold text-xl text-foreground">Profissional</h3>
+                <h3 className="font-display font-bold text-xl text-foreground">{professionalPlan.name}</h3>
               </div>
               <div className="mb-4">
-                <span className="text-3xl font-bold text-foreground">R$ 49,90</span>
+                <span className="text-3xl font-bold text-foreground">R$ 99,90</span>
                 <span className="text-muted-foreground">/mês</span>
               </div>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-primary" />
-                  </div>
-                  Produtos ilimitados
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-primary" />
-                  </div>
-                  Automação com n8n
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-primary" />
-                  </div>
-                  Prioridade na busca
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-primary" />
-                  </div>
-                  Relatórios avançados
-                </li>
+                {professionalPlan.features.map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Check className="w-3 h-3 text-primary" />
+                    </div>
+                    {feature}
+                  </li>
+                ))}
               </ul>
             </div>
           </motion.div>

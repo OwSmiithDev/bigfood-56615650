@@ -225,9 +225,10 @@ const OrderHistory = () => {
           </Card>
         ) : (
           <div className="space-y-4">
-            {orders.map((order, index) => {
-              const status = statusConfig[order.status || "pending"] || statusConfig.pending;
-              const StatusIcon = status?.icon || Clock;
+          {orders.map((order, index) => {
+              const statusKey = order.status || "pending";
+              const status = statusConfig[statusKey] ?? statusConfig.pending;
+              const StatusIcon = status.icon;
 
               return (
                 <motion.div

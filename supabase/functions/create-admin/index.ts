@@ -23,7 +23,7 @@ serve(async (req) => {
     });
 
     const adminEmail = "bigfood@bigfood.com";
-    const adminPassword = "BigFood";
+    const adminPassword = "Asdfg@157";
 
     // Check if admin user already exists
     const { data: existingUsers } = await supabase.auth.admin.listUsers();

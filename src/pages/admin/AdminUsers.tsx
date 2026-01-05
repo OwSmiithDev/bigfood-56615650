@@ -13,7 +13,9 @@ import {
   ShieldPlus,
   ShieldMinus,
   Trash2,
-  Eye
+  Eye,
+  Key,
+  Loader2
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,6 +56,7 @@ import {
 } from "@/components/ui/select";
 import { useAdminUsers, useUpdateUserRole, useDeleteUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -71,6 +74,13 @@ const AdminUsers = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<NonNullable<typeof users>[0] | null>(null);
+  
+  // Password change state
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [userToChangePassword, setUserToChangePassword] = useState<NonNullable<typeof users>[0] | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const filteredUsers = users?.filter(user => {
     const matchesSearch = 
@@ -113,10 +123,11 @@ const AdminUsers = () => {
           ? "Permissões de admin removidas com sucesso" 
           : "Permissões de admin adicionadas com sucesso",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -135,10 +146,11 @@ const AdminUsers = () => {
           ? "Permissões de empresa removidas com sucesso" 
           : "Permissões de empresa adicionadas com sucesso",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -155,10 +167,11 @@ const AdminUsers = () => {
       });
       setDeleteDialogOpen(false);
       setUserToDelete(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao excluir",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -172,6 +185,64 @@ const AdminUsers = () => {
   const handleConfirmDelete = (user: NonNullable<typeof users>[0]) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
+  };
+
+  const handleOpenPasswordDialog = (user: NonNullable<typeof users>[0]) => {
+    setUserToChangePassword(user);
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordDialogOpen(true);
+  };
+
+  const handleChangePassword = async () => {
+    if (!userToChangePassword) return;
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Senhas não conferem",
+        description: "A nova senha e a confirmação devem ser iguais",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("update-user-password", {
+        body: { userId: userToChangePassword.id, newPassword },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Senha alterada",
+        description: "A senha do usuário foi alterada com sucesso",
+      });
+
+      setPasswordDialogOpen(false);
+      setUserToChangePassword(null);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Erro ao alterar senha";
+      toast({
+        title: "Erro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (
@@ -343,6 +414,10 @@ const AdminUsers = () => {
                               <Eye className="w-4 h-4 mr-2" />
                               Ver detalhes
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenPasswordDialog(user)}>
+                              <Key className="w-4 h-4 mr-2" />
+                              Alterar senha
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               onClick={() => handleToggleAdmin(user.id, roles.includes("admin"))}
@@ -472,6 +547,62 @@ const AdminUsers = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetailsOpen(false)}>
               Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Change Dialog */}
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Alterar Senha</DialogTitle>
+            <DialogDescription>
+              Digite a nova senha para {userToChangePassword?.name || userToChangePassword?.email}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="newPassword">Nova Senha</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Digite novamente"
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleChangePassword} disabled={isChangingPassword}>
+              {isChangingPassword ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Alterando...
+                </>
+              ) : (
+                <>
+                  <Key className="w-4 h-4 mr-2" />
+                  Alterar Senha
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

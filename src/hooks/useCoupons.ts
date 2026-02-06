@@ -153,8 +153,17 @@ export const useDeleteCoupon = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("coupons").delete().eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("delete-coupon", {
+        body: { couponId: id },
+      });
+
+      if (error) {
+        throw new Error(error.message || "Erro ao excluir cupom");
+      }
+
+      if (data && !data.success) {
+        throw new Error(data.error || "Erro ao excluir cupom");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["coupons"] });

@@ -12,8 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePWAInstall } from "@/contexts/PWAInstallContext";
 import { supabase } from "@/integrations/supabase/client";
 
-type UserType = "user" | "company";
-type AuthTab = "login" | "register";
+// Pequena melhoria: aumenta padding para mobile para melhor visualização
 
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
@@ -26,10 +25,10 @@ const AuthPage = () => {
   // Get the redirect path from state (e.g., from checkout)
   const from = (location.state as { from?: string })?.from;
 
-  const [activeTab, setActiveTab] = useState<AuthTab>(
+  const [activeTab, setActiveTab] = useState<"login" | "register">(
     searchParams.get("tab") === "register" ? "register" : "login"
   );
-  const [userType, setUserType] = useState<UserType>(
+  const [userType, setUserType] = useState<"user" | "company">(
     searchParams.get("type") === "company" ? "company" : "user"
   );
   const [showPassword, setShowPassword] = useState(false);
@@ -163,7 +162,7 @@ const AuthPage = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-12">
+      <div className="flex-1 flex flex-col justify-center px-8 py-16 lg:px-12">
         <div className="mx-auto w-full max-w-md">
           <Link to="/" className="flex lg:hidden items-center gap-2 mb-8">
             <ArrowLeft className="w-5 h-5 text-muted-foreground" />

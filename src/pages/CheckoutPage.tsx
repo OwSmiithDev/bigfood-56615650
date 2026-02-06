@@ -144,7 +144,7 @@ const CheckoutPage = () => {
         code: couponCode.trim(),
         companyId,
         orderTotal: total,
-        userId: user?.id,
+        userId: user?.id ?? undefined,
       });
 
       setAppliedCoupon({
@@ -160,7 +160,7 @@ const CheckoutPage = () => {
     } catch (error: any) {
       toast({
         title: "Cupom inválido",
-        description: error.message,
+        description: error.message || "Erro ao validar cupom",
         variant: "destructive",
       });
     } finally {
@@ -209,7 +209,7 @@ const CheckoutPage = () => {
       await createOrder.mutateAsync({
         order: {
           company_id: companyId!,
-          user_id: user?.id,
+          user_id: user?.id || null,
           customer_name: formData.name,
           customer_phone: formData.phone,
           order_type: orderType,

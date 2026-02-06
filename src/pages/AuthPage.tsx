@@ -162,7 +162,7 @@ const AuthPage = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center px-8 py-16 lg:px-12">
+      <div className="flex-1 flex flex-col justify-center px-8 py-24 lg:px-12">
         <div className="mx-auto w-full max-w-md">
           <Link to="/" className="flex lg:hidden items-center gap-2 mb-8">
             <ArrowLeft className="w-5 h-5 text-muted-foreground" />

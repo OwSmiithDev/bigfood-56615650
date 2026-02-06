@@ -15,7 +15,7 @@ const Footer = () => {
               A plataforma que conecta você aos melhores restaurantes da sua região.
             </p>
             <div className="flex gap-3">
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram" className="w-10 h-10 rounded-full bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors">
+              <a href="https://www.instagram.com/smiith_ia/" target="_blank" rel="noreferrer" aria-label="Instagram" className="w-10 h-10 rounded-full bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors">
                 <Instagram className="w-5 h-5" />
               </a>
               <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook" className="w-10 h-10 rounded-full bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors">

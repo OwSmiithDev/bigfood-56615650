@@ -58,7 +58,18 @@ serve(async (req) => {
       },
     });
 
-    // First, delete related coupon_usage records
+    // First, update orders to remove the coupon association
+    const { error: orderError } = await supabaseAdmin
+      .from("orders")
+      .update({ coupon_id: null })
+      .eq("coupon_id", couponId);
+
+    if (orderError) {
+      console.error("Error updating orders:", orderError);
+      throw orderError;
+    }
+
+    // Now, delete related coupon_usage records
     const { error: usageError } = await supabaseAdmin
       .from("coupon_usage")
       .delete()
@@ -69,7 +80,7 @@ serve(async (req) => {
       throw usageError;
     }
 
-    // Now, delete the coupon
+    // Finally, delete the coupon
     const { error: deleteError } = await supabaseAdmin
       .from("coupons")
       .delete()

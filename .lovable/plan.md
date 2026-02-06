@@ -1,171 +1,117 @@
 
-# Plano: Prompt de Instalação do PWA com Lógica Inteligente
 
-## Objetivo
-Implementar um sistema que pergunta ao usuário se quer instalar o app BigFood:
-1. **Ao acessar qualquer página** - mostra o prompt automaticamente
-2. **Se recusar** - mostra novamente após fazer login ou cadastro
+# Plano: Responsividade Mobile + Correção Admin + Banco de Dados
+
+## Resumo dos problemas encontrados
+
+### 1. Responsividade
+- O arquivo `App.css` contém regras do template Vite original (`#root { max-width: 1280px; padding: 2rem; text-align: center }`) que limitam a largura e adicionam padding indesejado em todas as telas
+- O `index.css` define `font-size: 18px` no mobile, o que e excessivo para a maioria dos componentes
+- Algumas paginas admin (Usuarios, Cupons) possuem grids de stats que nao escalam bem em telas pequenas (ex: `grid-cols-4` sem breakpoint intermediario)
+- Pagina de auth tem padding que pode ser melhorado no mobile
+
+### 2. Erro ao deletar cupom (banco de dados)
+A tabela `orders` possui uma foreign key `orders_coupon_id_fkey` referenciando `coupons(id)` **sem regra de delete** (padrao RESTRICT). Isso significa que quando um admin tenta excluir um cupom que ja foi usado em pedidos, o banco retorna erro de constraint.
+
+Detalhe das FKs encontradas:
+- `coupon_usage.coupon_id` -> `coupons.id` com `ON DELETE CASCADE` (ok)
+- `orders.coupon_id` -> `coupons.id` **sem ON DELETE** (problema!)
+
+A edge function `delete-coupon` ja tenta fazer `SET NULL` nos pedidos antes de deletar, porem o hook `useDeleteCoupon` no frontend chama `supabase.from("coupons").delete()` diretamente (sem passar pela edge function), o que causa o erro.
+
+### 3. Permissoes do admin
+As politicas RLS ja concedem `ALL` para admins via `has_role(auth.uid(), 'admin')` em todas as tabelas. O unico bloqueio real e a constraint de FK na tabela de cupons (item 2 acima).
 
 ---
 
-## Como funciona tecnicamente
+## Plano de implementacao
 
-O navegador dispara um evento `beforeinstallprompt` quando o PWA está pronto para instalação. Vamos capturar esse evento e controlar quando exibir o prompt.
-
-### Fluxo do usuário
+### Etapa 1: Corrigir o banco de dados (FK do cupom)
+**Migração SQL:**
+Alterar a foreign key `orders_coupon_id_fkey` para usar `ON DELETE SET NULL`, permitindo que ao excluir um cupom, os pedidos que o usaram simplesmente fiquem com `coupon_id = NULL` (mantendo o historico do pedido intacto).
 
 ```text
-Usuário acessa o site
-        │
-        ▼
-┌─────────────────────────────────────┐
-│  Aparece modal: "Instalar BigFood?" │
-│  [Instalar]  [Agora não]            │
-└─────────────────────────────────────┘
-        │
-        ├── Clicou "Instalar" ──► App instalado (fim)
-        │
-        └── Clicou "Agora não"
-                │
-                ▼
-        Salva no localStorage que recusou
-                │
-                ▼
-        Usuário faz login/cadastro
-                │
-                ▼
-┌─────────────────────────────────────┐
-│  Aparece modal novamente            │
-│  [Instalar]  [Agora não]            │
-└─────────────────────────────────────┘
-        │
-        └── Se recusar de novo ──► Não mostra mais nessa sessão
+ALTER TABLE public.orders
+  DROP CONSTRAINT orders_coupon_id_fkey;
+
+ALTER TABLE public.orders
+  ADD CONSTRAINT orders_coupon_id_fkey
+  FOREIGN KEY (coupon_id) REFERENCES public.coupons(id)
+  ON DELETE SET NULL;
 ```
 
----
+### Etapa 2: Corrigir o hook `useDeleteCoupon`
+Atualizar `src/hooks/useCoupons.ts` para usar a edge function `delete-coupon` em vez de chamar `supabase.from("coupons").delete()` diretamente. A edge function ja tem a logica de limpar as referencias antes de deletar, e usa service role key para bypass de RLS.
 
-## Arquivos a criar/modificar
+**Arquivo:** `src/hooks/useCoupons.ts`
+- Trocar `supabase.from("coupons").delete()` por `supabase.functions.invoke("delete-coupon", { body: { couponId: id } })`
 
-### 1. Criar hook `usePWAInstall`
-**Arquivo:** `src/hooks/usePWAInstall.ts`
-
-Responsabilidades:
-- Capturar evento `beforeinstallprompt`
-- Armazenar o prompt para uso posterior
-- Controlar estado: se pode instalar, se já recusou, se já instalou
-- Função para disparar a instalação
-- Usar `localStorage` para lembrar se recusou
-
-### 2. Criar contexto `PWAInstallContext`
-**Arquivo:** `src/contexts/PWAInstallContext.tsx`
-
-Responsabilidades:
-- Prover estado global do PWA install
-- Função `triggerInstallPrompt()` - mostra o prompt nativo
-- Função `showInstallDialog()` - mostra nosso modal customizado
-- Flag `hasDeclined` - se recusou na primeira vez
-- Flag `canInstall` - se o navegador suporta instalação
-
-### 3. Criar componente `PWAInstallDialog`
-**Arquivo:** `src/components/PWAInstallDialog.tsx`
-
-Responsabilidades:
-- Modal bonito com logo do BigFood
-- Texto explicativo: "Instale o BigFood para acesso rápido"
-- Botão "Instalar" (chama o prompt nativo do navegador)
-- Botão "Agora não" (fecha e marca como recusado)
-- Animação suave com framer-motion
-
-### 4. Modificar `App.tsx`
-- Envolver app com `PWAInstallProvider`
-- Incluir `<PWAInstallDialog />` globalmente
-
-### 5. Modificar `AuthPage.tsx`
-- Após login/cadastro bem-sucedido, verificar se usuário recusou antes
-- Se recusou, mostrar o dialog novamente
-
----
-
-## Detalhes da implementação
-
-### Hook `usePWAInstall`
+### Etapa 3: Limpar o App.css (causa raiz de problemas de layout)
+O arquivo `src/App.css` contem estilos do template padrao do Vite que conflitam com o layout do projeto:
 
 ```text
-Estados:
-- deferredPrompt: guarda o evento do navegador
-- canInstall: true se PWA pode ser instalado
-- isInstalled: true se já está instalado
-
-Funções:
-- promptInstall(): dispara o prompt nativo
-- resetDecline(): limpa o estado de "recusou"
+#root {
+  max-width: 1280px;   <- limita largura indevidamente
+  margin: 0 auto;
+  padding: 2rem;       <- adiciona padding em TODAS as paginas
+  text-align: center;  <- centraliza texto de tudo
+}
 ```
 
-### Lógica do Dialog
+**Acao:** Remover todas essas regras, deixando apenas o seletor vazio ou removendo o arquivo. Essas regras nao sao usadas pelo projeto (o layout e feito via Tailwind com `container mx-auto`).
 
-```text
-Quando mostrar automaticamente:
-- canInstall === true
-- Não está instalado
-- Não recusou ainda (localStorage)
-- Delay de 2-3 segundos após carregar a página
+### Etapa 4: Ajustar fonte base no mobile
+No `src/index.css`, a regra `@media (max-width: 640px) { body { font-size: 18px } }` faz tudo ficar grande demais. 
 
-Quando mostrar após auth:
-- hasDeclined === true (recusou antes)
-- Login/cadastro com sucesso
-- canInstall ainda === true
-```
+**Acao:** Remover essa regra. O `font-size: 16px` padrao ja e adequado, e os componentes Tailwind controlam tamanhos com classes responsivas (`text-sm`, `text-base`, etc).
 
-### Persistência
+### Etapa 5: Melhorar responsividade de paginas especificas
 
-```text
-localStorage keys:
-- "pwa-install-declined": "true" | não existe
-- "pwa-install-declined-after-auth": "true" | não existe
-```
+**5a. AdminUsers (`src/pages/admin/AdminUsers.tsx`)**
+- Stats grid: trocar `grid-cols-1 sm:grid-cols-4` por `grid-cols-2 sm:grid-cols-4` para 2 colunas no mobile
+- User cards: melhorar truncamento de email/telefone em telas menores
+
+**5b. AdminCoupons (`src/pages/admin/AdminCoupons.tsx`)**
+- Stats grid: ja usa `sm:grid-cols-3`, esta ok
+- Modal de criacao: garantir que funcione bem em tela cheia no mobile (usar `items-end sm:items-center` como ja feito em CompanyProducts)
+
+**5c. AdminOrders (`src/pages/admin/AdminOrders.tsx`)**
+- Stats grid: trocar `grid-cols-1 sm:grid-cols-3` por `grid-cols-2 sm:grid-cols-3` para mobile
+- Cards de pedido: melhorar layout do preco/acoes em mobile
+
+**5d. CustomerHome (`src/pages/CustomerHome.tsx`)**
+- Ja esta razoavelmente responsiva, mas a barra de categorias pode ter touch targets maiores
+
+**5e. CheckoutPage (`src/pages/CheckoutPage.tsx`)**
+- Ja usa `max-w-lg` e layout mobile-first, esta ok
+
+**5f. RestaurantPage (`src/pages/RestaurantPage.tsx`)**
+- Info card: melhorar responsividade dos dados (rating/tempo/entrega) em mobile para quebrar linha se necessario
+
+**5g. CompanyDashboard (`src/pages/company/CompanyDashboard.tsx`)**
+- Stats cards: os valores com `text-2xl` ficam grandes demais em mobile, ajustar para responsive
 
 ---
 
-## Visual do Dialog
+## Resumo dos arquivos alterados
 
-```text
-┌────────────────────────────────────────┐
-│                                        │
-│         [Logo BigFood grande]          │
-│                                        │
-│     Instale o app BigFood!             │
-│                                        │
-│   Tenha acesso rápido aos melhores     │
-│   restaurantes direto da sua tela      │
-│   inicial.                             │
-│                                        │
-│   ┌──────────────────────────────┐     │
-│   │        Instalar agora        │     │
-│   └──────────────────────────────┘     │
-│                                        │
-│         [Agora não, obrigado]          │
-│                                        │
-└────────────────────────────────────────┘
-```
+| Arquivo | Acao | Motivo |
+|---------|------|--------|
+| Migracao SQL | Criar | Corrigir FK `orders_coupon_id_fkey` para `ON DELETE SET NULL` |
+| `src/App.css` | Limpar | Remover regras do template Vite que quebram layout |
+| `src/index.css` | Editar | Remover `font-size: 18px` do mobile |
+| `src/hooks/useCoupons.ts` | Editar | Usar edge function para deletar cupom |
+| `src/pages/admin/AdminUsers.tsx` | Editar | Grid de stats responsivo |
+| `src/pages/admin/AdminOrders.tsx` | Editar | Grid de stats responsivo |
+| `src/pages/admin/AdminCoupons.tsx` | Editar | Modal full-screen no mobile |
+| `src/pages/company/CompanyDashboard.tsx` | Editar | Tamanhos de texto responsivos nos stats |
+| `src/pages/RestaurantPage.tsx` | Editar | Info card responsivo |
 
 ---
 
-## Considerações importantes
+## O que NAO precisa mudar
+- Permissoes RLS do admin: ja estao corretas (`ALL` via `has_role`)
+- Pages da empresa (Products, Orders, Settings): ja possuem boa responsividade com breakpoints `sm:` e `lg:`
+- AdminCompanies e AdminDashboard: ja foram ajustadas previamente com responsividade
+- PWA: ja esta configurado e funcionando
 
-1. **Compatibilidade iOS**: Safari no iPhone não suporta `beforeinstallprompt`. Para iOS, vamos mostrar instruções manuais ("Toque em Compartilhar > Adicionar à Tela de Início").
-
-2. **Não ser intrusivo**: O dialog aparece apenas 1x automaticamente e 1x após auth. Depois disso, não incomoda mais.
-
-3. **Persistência por sessão**: Se recusar as duas vezes, não mostra mais até limpar dados do navegador ou nova sessão (1 dia).
-
----
-
-## Resumo das alterações
-
-| Arquivo | Ação |
-|---------|------|
-| `src/hooks/usePWAInstall.ts` | Criar |
-| `src/contexts/PWAInstallContext.tsx` | Criar |
-| `src/components/PWAInstallDialog.tsx` | Criar |
-| `src/App.tsx` | Modificar (adicionar provider e dialog) |
-| `src/pages/AuthPage.tsx` | Modificar (trigger após auth) |

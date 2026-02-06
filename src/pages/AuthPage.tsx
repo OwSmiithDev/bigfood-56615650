@@ -57,7 +57,6 @@ const AuthPage = () => {
       }
 
       if (isCompany) {
-        // Check if company has a subscription and if it's active
         const { data: company } = await supabase
           .from("companies")
           .select("id")
@@ -71,7 +70,6 @@ const AuthPage = () => {
             .eq("company_id", company.id)
             .maybeSingle();
 
-          // If pending or no subscription, go to plan selection
           if (!subscription || subscription.status === "pending") {
             navigate("/empresa/planos");
             return;
@@ -94,8 +92,16 @@ const AuthPage = () => {
 
     try {
       if (activeTab === "login") {
+        // For mobile login, try also signIn with supabase directly if useAuth fails
         const { error } = await signIn(email, password);
-        if (error) throw error;
+        if (error) {
+          // fallback direct Supabase auth
+          const { error: supabaseError } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+          });
+          if (supabaseError) throw supabaseError;
+        }
         toast({ title: "Login realizado!", description: "Bem-vindo de volta!" });
         onAuthSuccess();
       } else {
@@ -107,15 +113,12 @@ const AuthPage = () => {
         });
         if (error) throw error;
 
-        // If registering as company, create the company record after signup
         if (userType === "company") {
-          // Wait a moment for the user to be created
           const {
             data: { user: newUser },
           } = await supabase.auth.getUser();
 
           if (newUser) {
-            // Create company record
             const { error: companyError } = await supabase.from("companies").insert({
               user_id: newUser.id,
               business_name: businessName || name,

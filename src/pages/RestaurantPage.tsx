@@ -163,7 +163,7 @@ const RestaurantPage = () => {
               <p className="text-muted-foreground text-sm mt-1">
                 {restaurant.category}
               </p>
-              <div className="flex items-center gap-4 mt-2">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-2">
                 <div className="flex items-center gap-1 text-sm">
                   <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                   <span className="font-semibold">{restaurant.rating || "Novo"}</span>

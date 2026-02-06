@@ -139,8 +139,8 @@ const CompanyDashboard = () => {
                   <ShoppingBag className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-sm">Pedidos Hoje</p>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-muted-foreground text-xs sm:text-sm">Pedidos Hoje</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">
                     {todayOrders.length}
                   </p>
                 </div>
@@ -158,8 +158,8 @@ const CompanyDashboard = () => {
                   <DollarSign className="w-5 h-5 text-accent" />
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-sm">Faturamento</p>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-muted-foreground text-xs sm:text-sm">Faturamento</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">
                     R$ {todayRevenue.toFixed(0)}
                   </p>
                 </div>
@@ -177,8 +177,8 @@ const CompanyDashboard = () => {
                   <Clock className="w-5 h-5 text-yellow-500" />
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-sm">Pendentes</p>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-muted-foreground text-xs sm:text-sm">Pendentes</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">
                     {pendingOrders.length}
                   </p>
                 </div>
@@ -196,8 +196,8 @@ const CompanyDashboard = () => {
                   <TrendingUp className="w-5 h-5 text-purple-500" />
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-sm">Total Pedidos</p>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-muted-foreground text-xs sm:text-sm">Total Pedidos</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">
                     {orders?.length || 0}
                   </p>
                 </div>

@@ -1,113 +1,171 @@
 
-Objetivo
-- Transformar o BigFood em um PWA (instalável no Android/iPhone) no site inteiro, sem “modo offline” (ou seja: se ficar sem internet, pode mostrar erro/sem conexão normalmente).
-- Garantir boa responsividade (mobile/tablet/desktop) e evitar problemas comuns de PWA (cache quebrando páginas, rotas do React, logo/ícones errados).
+# Plano: Prompt de Instalação do PWA com Lógica Inteligente
 
-O que já existe no projeto (confirmado)
-- Stack: Vite + React + React Router + Tailwind.
-- Ainda não há PWA configurado (nenhum manifest/service worker/vite-plugin-pwa).
-- index.html já tem meta tags mobile importantes (viewport, theme-color, apple-mobile-web-app-capable).
-- Pasta public/ ainda só tem favicon.ico, robots.txt etc.
+## Objetivo
+Implementar um sistema que pergunta ao usuário se quer instalar o app BigFood:
+1. **Ao acessar qualquer página** - mostra o prompt automaticamente
+2. **Se recusar** - mostra novamente após fazer login ou cadastro
 
-Decisões confirmadas com você
-- Nome do app: BigFood.
-- Offline: não precisa (funciona somente com internet).
-- Instalação: prompt automático do navegador (sem página /install).
-- Ícone: você quer usar o arquivo que está nesse URL:
-  https://cc7ba732-2da8-4d71-8270-a0ef154fe968.lovableproject.com/src/assets/logo-transparent.png
-  Observação: para PWA, o ideal é um ícone quadrado; se esse arquivo não for quadrado, eu vou gerar os tamanhos exigidos com “melhor esforço” (pode ficar com padding).
+---
 
-Plano de implementação (PWA)
-1) Adicionar a dependência de PWA do Vite
-- Instalar: vite-plugin-pwa (devDependency).
-- Motivo: é a forma padrão e mais estável de PWA no Vite.
+## Como funciona tecnicamente
 
-2) Configurar o PWA no vite.config.ts
-- Adicionar o plugin VitePWA junto do react().
-- Configurações principais:
-  - registerType: "autoUpdate" (para atualizar SW automaticamente quando publicar)
-  - includeAssets: incluir favicon e assets necessários
-  - manifest:
-    - name: "BigFood"
-    - short_name: "BigFood"
-    - start_url: "/"
-    - scope: "/"
-    - display: "standalone"
-    - background_color e theme_color alinhados ao seu laranja atual (já existe theme-color no HTML)
-    - icons: lista de ícones (192x192, 512x512, e idealmente maskable)
-- Cache/Workbox (como você não quer offline):
-  - Usar uma estratégia minimalista para reduzir risco de “página branca” por cache:
-    - Precache apenas os assets gerados do build.
-    - Runtime caching bem conservador (ou nenhum) para páginas dinâmicas.
-  - Resultado: app instalável, mas sem prometer navegação offline.
+O navegador dispara um evento `beforeinstallprompt` quando o PWA está pronto para instalação. Vamos capturar esse evento e controlar quando exibir o prompt.
 
-3) Registro do service worker no app (src/main.tsx)
-- Importar e chamar o helper de registro do plugin (virtual:pwa-register).
-- Configurar para atualizar sem atrapalhar o uso (autoUpdate).
-- Opcional: log/console apenas em dev para depuração.
+### Fluxo do usuário
 
-4) Criar/ajustar arquivos públicos do PWA
-- Adicionar no public/:
-  - pwa-192x192.png
-  - pwa-512x512.png
-  - pwa-512x512-maskable.png (se conseguirmos fazer uma versão “maskable” aceitável)
-  - apple-touch-icon.png (180x180)
-- Origem do ícone:
-  - Baixar a imagem do URL que você passou e gerar as variações.
-  - Se o formato/qualidade não estiver ideal (ex: não quadrado), eu vou centralizar com padding para evitar corte feio.
+```text
+Usuário acessa o site
+        │
+        ▼
+┌─────────────────────────────────────┐
+│  Aparece modal: "Instalar BigFood?" │
+│  [Instalar]  [Agora não]            │
+└─────────────────────────────────────┘
+        │
+        ├── Clicou "Instalar" ──► App instalado (fim)
+        │
+        └── Clicou "Agora não"
+                │
+                ▼
+        Salva no localStorage que recusou
+                │
+                ▼
+        Usuário faz login/cadastro
+                │
+                ▼
+┌─────────────────────────────────────┐
+│  Aparece modal novamente            │
+│  [Instalar]  [Agora não]            │
+└─────────────────────────────────────┘
+        │
+        └── Se recusar de novo ──► Não mostra mais nessa sessão
+```
 
-5) Ajustes finais no index.html (compatibilidade iOS/Android)
-- Garantir tags recomendadas para instalação:
-  - link rel="apple-touch-icon"
-  - meta name="theme-color" (já existe)
-  - Opcional: meta apple-mobile-web-app-title para iOS
-- Observação: o iPhone (Safari) tem particularidades; essas tags ajudam.
+---
 
-Plano de implementação (Responsividade “bem responsivo”)
-6) Auditoria rápida de responsividade nas páginas principais
-- Rotas chave:
-  - Landing (/)
-  - Auth (/auth)
-  - Customer (/home)
-  - Empresa (/empresa/*)
-  - Admin (/admin/*)
-- O que vou revisar e ajustar quando necessário:
-  - Containers com largura fixa / max-width indevido (ex: se alguma tela herda estilos antigos como App.css com padding/centralização)
-  - Elementos que “estouram” horizontalmente no mobile (tabelas, cards, grids)
-  - Touch targets (botões pequenos)
-  - Overflows (overflow-x inadvertido)
-  - Header/Footer em mobile (menus, quebras, alinhamentos)
-- Critério: nenhuma tela pode ficar “cortada” ou exigir scroll horizontal.
+## Arquivos a criar/modificar
 
-7) Validar que o PWA não quebra o React Router
-- Confirmar que navegação client-side continua ok.
-- Garantir que o service worker não cacheie HTML antigo que cause “tela branca” após update.
-- Em caso de rotas que precisam sempre da versão mais nova, manter comportamento “network-first” para HTML.
+### 1. Criar hook `usePWAInstall`
+**Arquivo:** `src/hooks/usePWAInstall.ts`
 
-Testes que vou fazer (e que você deve validar também)
-8) Testes técnicos (no preview e após publicar)
-- Instalação:
-  - Android/Chrome: verificar se aparece “Instalar app”.
-  - Desktop/Chrome: verificar “Install app”.
-  - iPhone/Safari: verificar “Adicionar à Tela de Início”.
-- Navegação:
-  - Trocar entre /, /auth, /home, /empresa e /admin (se possível) para garantir que nada fica em branco.
-- Atualização:
-  - Simular update (build novo) e garantir que não fica preso em versão antiga.
-- Responsividade:
-  - Validar em 390px (iPhone), ~768px (tablet) e desktop.
+Responsabilidades:
+- Capturar evento `beforeinstallprompt`
+- Armazenar o prompt para uso posterior
+- Controlar estado: se pode instalar, se já recusou, se já instalou
+- Função para disparar a instalação
+- Usar `localStorage` para lembrar se recusou
 
-Riscos / observações
-- Ícone via URL: se a imagem não for quadrada ou tiver muita transparência, o ícone instalado pode ficar com aparência “pequena” (por padding). Se isso acontecer, a melhor solução é você enviar um ícone quadrado (ex: 1024x1024 PNG) e eu regenero tudo perfeito.
-- “Sem offline”: ainda existirá service worker (requisito prático do PWA), mas a experiência offline não será tratada como feature; sem internet, o navegador pode mostrar erro normal.
+### 2. Criar contexto `PWAInstallContext`
+**Arquivo:** `src/contexts/PWAInstallContext.tsx`
 
-Entrega (o que vai mudar no código)
-- package.json: adicionar vite-plugin-pwa
-- vite.config.ts: configurar VitePWA
-- src/main.tsx: registrar service worker
-- index.html: complementar tags (se necessário)
-- public/: adicionar ícones do PWA
-- Pequenos ajustes pontuais de CSS/layout onde houver quebra de responsividade
+Responsabilidades:
+- Prover estado global do PWA install
+- Função `triggerInstallPrompt()` - mostra o prompt nativo
+- Função `showInstallDialog()` - mostra nosso modal customizado
+- Flag `hasDeclined` - se recusou na primeira vez
+- Flag `canInstall` - se o navegador suporta instalação
 
-Depois que você aprovar
-- Eu implemento tudo em uma rodada, e em seguida a gente valida a instalação (Android/iOS) e a responsividade nas páginas principais.
+### 3. Criar componente `PWAInstallDialog`
+**Arquivo:** `src/components/PWAInstallDialog.tsx`
+
+Responsabilidades:
+- Modal bonito com logo do BigFood
+- Texto explicativo: "Instale o BigFood para acesso rápido"
+- Botão "Instalar" (chama o prompt nativo do navegador)
+- Botão "Agora não" (fecha e marca como recusado)
+- Animação suave com framer-motion
+
+### 4. Modificar `App.tsx`
+- Envolver app com `PWAInstallProvider`
+- Incluir `<PWAInstallDialog />` globalmente
+
+### 5. Modificar `AuthPage.tsx`
+- Após login/cadastro bem-sucedido, verificar se usuário recusou antes
+- Se recusou, mostrar o dialog novamente
+
+---
+
+## Detalhes da implementação
+
+### Hook `usePWAInstall`
+
+```text
+Estados:
+- deferredPrompt: guarda o evento do navegador
+- canInstall: true se PWA pode ser instalado
+- isInstalled: true se já está instalado
+
+Funções:
+- promptInstall(): dispara o prompt nativo
+- resetDecline(): limpa o estado de "recusou"
+```
+
+### Lógica do Dialog
+
+```text
+Quando mostrar automaticamente:
+- canInstall === true
+- Não está instalado
+- Não recusou ainda (localStorage)
+- Delay de 2-3 segundos após carregar a página
+
+Quando mostrar após auth:
+- hasDeclined === true (recusou antes)
+- Login/cadastro com sucesso
+- canInstall ainda === true
+```
+
+### Persistência
+
+```text
+localStorage keys:
+- "pwa-install-declined": "true" | não existe
+- "pwa-install-declined-after-auth": "true" | não existe
+```
+
+---
+
+## Visual do Dialog
+
+```text
+┌────────────────────────────────────────┐
+│                                        │
+│         [Logo BigFood grande]          │
+│                                        │
+│     Instale o app BigFood!             │
+│                                        │
+│   Tenha acesso rápido aos melhores     │
+│   restaurantes direto da sua tela      │
+│   inicial.                             │
+│                                        │
+│   ┌──────────────────────────────┐     │
+│   │        Instalar agora        │     │
+│   └──────────────────────────────┘     │
+│                                        │
+│         [Agora não, obrigado]          │
+│                                        │
+└────────────────────────────────────────┘
+```
+
+---
+
+## Considerações importantes
+
+1. **Compatibilidade iOS**: Safari no iPhone não suporta `beforeinstallprompt`. Para iOS, vamos mostrar instruções manuais ("Toque em Compartilhar > Adicionar à Tela de Início").
+
+2. **Não ser intrusivo**: O dialog aparece apenas 1x automaticamente e 1x após auth. Depois disso, não incomoda mais.
+
+3. **Persistência por sessão**: Se recusar as duas vezes, não mostra mais até limpar dados do navegador ou nova sessão (1 dia).
+
+---
+
+## Resumo das alterações
+
+| Arquivo | Ação |
+|---------|------|
+| `src/hooks/usePWAInstall.ts` | Criar |
+| `src/contexts/PWAInstallContext.tsx` | Criar |
+| `src/components/PWAInstallDialog.tsx` | Criar |
+| `src/App.tsx` | Modificar (adicionar provider e dialog) |
+| `src/pages/AuthPage.tsx` | Modificar (trigger após auth) |

@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { PWAInstallProvider } from "@/contexts/PWAInstallContext";
+import PWAInstallDialog from "@/components/PWAInstallDialog";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import CustomerHome from "./pages/CustomerHome";
@@ -63,41 +65,149 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/home" element={<CustomerHome />} />
-              <Route path="/restaurantes" element={<CustomerHome />} />
-              <Route path="/meus-pedidos" element={<OrderHistory />} />
-              <Route path="/restaurante/:id" element={<RestaurantPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/cadastrar-empresa" element={<RegisterCompanyPage />} />
-              <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
-              <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
-              <Route path="/faq" element={<FAQPage />} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
-              <Route path="/admin/empresas" element={<ProtectedAdminRoute><AdminCompanies /></ProtectedAdminRoute>} />
-              <Route path="/admin/usuarios" element={<ProtectedAdminRoute><AdminUsers /></ProtectedAdminRoute>} />
-              <Route path="/admin/pedidos" element={<ProtectedAdminRoute><AdminOrders /></ProtectedAdminRoute>} />
-              <Route path="/admin/cupons" element={<ProtectedAdminRoute><AdminCoupons /></ProtectedAdminRoute>} />
-              <Route path="/admin/config" element={<AdminConfig />} />
-              
-              {/* Company Routes */}
-              <Route path="/empresa" element={<ProtectedCompanyRoute><CompanyDashboard /></ProtectedCompanyRoute>} />
-              <Route path="/empresa/planos" element={<ProtectedCompanyRoute><ChoosePlanPage /></ProtectedCompanyRoute>} />
-              <Route path="/empresa/pagamento" element={<ProtectedCompanyRoute><PaymentPage /></ProtectedCompanyRoute>} />
-              <Route path="/empresa/gerenciar-plano" element={<ProtectedCompanyRoute><ManagePlanPage /></ProtectedCompanyRoute>} />
-              <Route path="/empresa/renovar" element={<ProtectedCompanyRoute><RenewPlanPage /></ProtectedCompanyRoute>} />
-              <Route path="/empresa/produtos" element={<ProtectedCompanyRoute><CompanyProducts /></ProtectedCompanyRoute>} />
-              <Route path="/empresa/pedidos" element={<ProtectedCompanyRoute><CompanyOrders /></ProtectedCompanyRoute>} />
-              <Route path="/empresa/notificacoes" element={<ProtectedCompanyRoute><CompanyNotifications /></ProtectedCompanyRoute>} />
-              <Route path="/empresa/avaliacoes" element={<ProtectedCompanyRoute><CompanyReviews /></ProtectedCompanyRoute>} />
-              <Route path="/empresa/config" element={<ProtectedCompanyRoute><CompanySettings /></ProtectedCompanyRoute>} />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <PWAInstallProvider>
+              <PWAInstallDialog />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/home" element={<CustomerHome />} />
+                <Route path="/restaurantes" element={<CustomerHome />} />
+                <Route path="/meus-pedidos" element={<OrderHistory />} />
+                <Route path="/restaurante/:id" element={<RestaurantPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/cadastrar-empresa" element={<RegisterCompanyPage />} />
+                <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
+                <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
+                <Route path="/faq" element={<FAQPage />} />
+
+                {/* Admin Routes */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedAdminRoute>
+                      <AdminDashboard />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/empresas"
+                  element={
+                    <ProtectedAdminRoute>
+                      <AdminCompanies />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/usuarios"
+                  element={
+                    <ProtectedAdminRoute>
+                      <AdminUsers />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/pedidos"
+                  element={
+                    <ProtectedAdminRoute>
+                      <AdminOrders />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/cupons"
+                  element={
+                    <ProtectedAdminRoute>
+                      <AdminCoupons />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route path="/admin/config" element={<AdminConfig />} />
+
+                {/* Company Routes */}
+                <Route
+                  path="/empresa"
+                  element={
+                    <ProtectedCompanyRoute>
+                      <CompanyDashboard />
+                    </ProtectedCompanyRoute>
+                  }
+                />
+                <Route
+                  path="/empresa/planos"
+                  element={
+                    <ProtectedCompanyRoute>
+                      <ChoosePlanPage />
+                    </ProtectedCompanyRoute>
+                  }
+                />
+                <Route
+                  path="/empresa/pagamento"
+                  element={
+                    <ProtectedCompanyRoute>
+                      <PaymentPage />
+                    </ProtectedCompanyRoute>
+                  }
+                />
+                <Route
+                  path="/empresa/gerenciar-plano"
+                  element={
+                    <ProtectedCompanyRoute>
+                      <ManagePlanPage />
+                    </ProtectedCompanyRoute>
+                  }
+                />
+                <Route
+                  path="/empresa/renovar"
+                  element={
+                    <ProtectedCompanyRoute>
+                      <RenewPlanPage />
+                    </ProtectedCompanyRoute>
+                  }
+                />
+                <Route
+                  path="/empresa/produtos"
+                  element={
+                    <ProtectedCompanyRoute>
+                      <CompanyProducts />
+                    </ProtectedCompanyRoute>
+                  }
+                />
+                <Route
+                  path="/empresa/pedidos"
+                  element={
+                    <ProtectedCompanyRoute>
+                      <CompanyOrders />
+                    </ProtectedCompanyRoute>
+                  }
+                />
+                <Route
+                  path="/empresa/notificacoes"
+                  element={
+                    <ProtectedCompanyRoute>
+                      <CompanyNotifications />
+                    </ProtectedCompanyRoute>
+                  }
+                />
+                <Route
+                  path="/empresa/avaliacoes"
+                  element={
+                    <ProtectedCompanyRoute>
+                      <CompanyReviews />
+                    </ProtectedCompanyRoute>
+                  }
+                />
+                <Route
+                  path="/empresa/config"
+                  element={
+                    <ProtectedCompanyRoute>
+                      <CompanySettings />
+                    </ProtectedCompanyRoute>
+                  }
+                />
+
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </PWAInstallProvider>
           </BrowserRouter>
         </TooltipProvider>
       </CartProvider>

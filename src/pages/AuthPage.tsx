@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePWAInstall } from "@/contexts/PWAInstallContext";
 import { supabase } from "@/integrations/supabase/client";
 
 type UserType = "user" | "company";
@@ -20,6 +21,7 @@ const AuthPage = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { signIn, signUp, user, loading, isAdmin, isCompany } = useAuth();
+  const { onAuthSuccess } = usePWAInstall();
 
   // Get the redirect path from state (e.g., from checkout)
   const from = (location.state as { from?: string })?.from;
@@ -95,31 +97,32 @@ const AuthPage = () => {
         const { error } = await signIn(email, password);
         if (error) throw error;
         toast({ title: "Login realizado!", description: "Bem-vindo de volta!" });
+        onAuthSuccess();
       } else {
-        const { error } = await signUp(email, password, { 
-          name, 
-          phone, 
-          user_type: userType, 
-          business_name: businessName 
+        const { error } = await signUp(email, password, {
+          name,
+          phone,
+          user_type: userType,
+          business_name: businessName,
         });
         if (error) throw error;
 
         // If registering as company, create the company record after signup
         if (userType === "company") {
           // Wait a moment for the user to be created
-          const { data: { user: newUser } } = await supabase.auth.getUser();
-          
+          const {
+            data: { user: newUser },
+          } = await supabase.auth.getUser();
+
           if (newUser) {
             // Create company record
-            const { error: companyError } = await supabase
-              .from("companies")
-              .insert({
-                user_id: newUser.id,
-                business_name: businessName || name,
-                display_name: businessName || name,
-                phone: phone || null,
-                email: email,
-              });
+            const { error: companyError } = await supabase.from("companies").insert({
+              user_id: newUser.id,
+              business_name: businessName || name,
+              display_name: businessName || name,
+              phone: phone || null,
+              email: email,
+            });
 
             if (companyError) {
               console.error("Error creating company:", companyError);
@@ -128,6 +131,7 @@ const AuthPage = () => {
         }
 
         toast({ title: "Conta criada!", description: "Sua conta foi criada com sucesso." });
+        onAuthSuccess();
       }
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });

@@ -1,117 +1,125 @@
 
+# Plano: Botao de Imprimir Comanda nos Pedidos da Empresa
 
-# Plano: Responsividade Mobile + Correção Admin + Banco de Dados
-
-## Resumo dos problemas encontrados
-
-### 1. Responsividade
-- O arquivo `App.css` contém regras do template Vite original (`#root { max-width: 1280px; padding: 2rem; text-align: center }`) que limitam a largura e adicionam padding indesejado em todas as telas
-- O `index.css` define `font-size: 18px` no mobile, o que e excessivo para a maioria dos componentes
-- Algumas paginas admin (Usuarios, Cupons) possuem grids de stats que nao escalam bem em telas pequenas (ex: `grid-cols-4` sem breakpoint intermediario)
-- Pagina de auth tem padding que pode ser melhorado no mobile
-
-### 2. Erro ao deletar cupom (banco de dados)
-A tabela `orders` possui uma foreign key `orders_coupon_id_fkey` referenciando `coupons(id)` **sem regra de delete** (padrao RESTRICT). Isso significa que quando um admin tenta excluir um cupom que ja foi usado em pedidos, o banco retorna erro de constraint.
-
-Detalhe das FKs encontradas:
-- `coupon_usage.coupon_id` -> `coupons.id` com `ON DELETE CASCADE` (ok)
-- `orders.coupon_id` -> `coupons.id` **sem ON DELETE** (problema!)
-
-A edge function `delete-coupon` ja tenta fazer `SET NULL` nos pedidos antes de deletar, porem o hook `useDeleteCoupon` no frontend chama `supabase.from("coupons").delete()` diretamente (sem passar pela edge function), o que causa o erro.
-
-### 3. Permissoes do admin
-As politicas RLS ja concedem `ALL` para admins via `has_role(auth.uid(), 'admin')` em todas as tabelas. O unico bloqueio real e a constraint de FK na tabela de cupons (item 2 acima).
+## O que sera feito
+Adicionar um botao "Imprimir Comanda" em cada card de pedido no painel da empresa. Ao clicar, abre um dialog com a pre-visualizacao da comanda e a opcao de imprimir (usando o seletor de impressora nativo do navegador).
 
 ---
 
-## Plano de implementacao
-
-### Etapa 1: Corrigir o banco de dados (FK do cupom)
-**Migração SQL:**
-Alterar a foreign key `orders_coupon_id_fkey` para usar `ON DELETE SET NULL`, permitindo que ao excluir um cupom, os pedidos que o usaram simplesmente fiquem com `coupon_id = NULL` (mantendo o historico do pedido intacto).
+## Como funciona
 
 ```text
-ALTER TABLE public.orders
-  DROP CONSTRAINT orders_coupon_id_fkey;
-
-ALTER TABLE public.orders
-  ADD CONSTRAINT orders_coupon_id_fkey
-  FOREIGN KEY (coupon_id) REFERENCES public.coupons(id)
-  ON DELETE SET NULL;
+Card do pedido (CompanyOrders)
+        |
+        v
+  [Botao de impressora]
+        |
+        v
+  Abre Dialog com preview da comanda
+        |
+        v
+  ┌──────────────────────────────────┐
+  │       COMANDA - BigFood          │
+  │  ================================│
+  │  Pedido: #a1b2c3d4               │
+  │  Data: 07/02/2026 14:30          │
+  │  Cliente: Joao Silva             │
+  │  Telefone: (11) 99999-0000       │
+  │  Tipo: Entrega                   │
+  │  ================================│
+  │  ITENS:                          │
+  │  2x Hamburguer Classico    29,90 │
+  │  1x Refrigerante            8,00 │
+  │  ================================│
+  │  Subtotal:              R$ 67,80 │
+  │  Taxa entrega:          R$  5,00 │
+  │  Desconto:             -R$ 10,00 │
+  │  TOTAL:                R$ 62,80  │
+  │  ================================│
+  │  Endereco:                       │
+  │  Rua das Flores, 123 - Centro    │
+  │  ================================│
+  │  Obs: Sem cebola                 │
+  │  Pgto: Dinheiro | Troco p/ 100   │
+  └──────────────────────────────────┘
+  
+  [Imprimir]  [Fechar]
+        |
+        v
+  Abre dialog nativo do navegador
+  (usuario escolhe a impressora)
 ```
 
-### Etapa 2: Corrigir o hook `useDeleteCoupon`
-Atualizar `src/hooks/useCoupons.ts` para usar a edge function `delete-coupon` em vez de chamar `supabase.from("coupons").delete()` diretamente. A edge function ja tem a logica de limpar as referencias antes de deletar, e usa service role key para bypass de RLS.
-
-**Arquivo:** `src/hooks/useCoupons.ts`
-- Trocar `supabase.from("coupons").delete()` por `supabase.functions.invoke("delete-coupon", { body: { couponId: id } })`
-
-### Etapa 3: Limpar o App.css (causa raiz de problemas de layout)
-O arquivo `src/App.css` contem estilos do template padrao do Vite que conflitam com o layout do projeto:
-
-```text
-#root {
-  max-width: 1280px;   <- limita largura indevidamente
-  margin: 0 auto;
-  padding: 2rem;       <- adiciona padding em TODAS as paginas
-  text-align: center;  <- centraliza texto de tudo
-}
-```
-
-**Acao:** Remover todas essas regras, deixando apenas o seletor vazio ou removendo o arquivo. Essas regras nao sao usadas pelo projeto (o layout e feito via Tailwind com `container mx-auto`).
-
-### Etapa 4: Ajustar fonte base no mobile
-No `src/index.css`, a regra `@media (max-width: 640px) { body { font-size: 18px } }` faz tudo ficar grande demais. 
-
-**Acao:** Remover essa regra. O `font-size: 16px` padrao ja e adequado, e os componentes Tailwind controlam tamanhos com classes responsivas (`text-sm`, `text-base`, etc).
-
-### Etapa 5: Melhorar responsividade de paginas especificas
-
-**5a. AdminUsers (`src/pages/admin/AdminUsers.tsx`)**
-- Stats grid: trocar `grid-cols-1 sm:grid-cols-4` por `grid-cols-2 sm:grid-cols-4` para 2 colunas no mobile
-- User cards: melhorar truncamento de email/telefone em telas menores
-
-**5b. AdminCoupons (`src/pages/admin/AdminCoupons.tsx`)**
-- Stats grid: ja usa `sm:grid-cols-3`, esta ok
-- Modal de criacao: garantir que funcione bem em tela cheia no mobile (usar `items-end sm:items-center` como ja feito em CompanyProducts)
-
-**5c. AdminOrders (`src/pages/admin/AdminOrders.tsx`)**
-- Stats grid: trocar `grid-cols-1 sm:grid-cols-3` por `grid-cols-2 sm:grid-cols-3` para mobile
-- Cards de pedido: melhorar layout do preco/acoes em mobile
-
-**5d. CustomerHome (`src/pages/CustomerHome.tsx`)**
-- Ja esta razoavelmente responsiva, mas a barra de categorias pode ter touch targets maiores
-
-**5e. CheckoutPage (`src/pages/CheckoutPage.tsx`)**
-- Ja usa `max-w-lg` e layout mobile-first, esta ok
-
-**5f. RestaurantPage (`src/pages/RestaurantPage.tsx`)**
-- Info card: melhorar responsividade dos dados (rating/tempo/entrega) em mobile para quebrar linha se necessario
-
-**5g. CompanyDashboard (`src/pages/company/CompanyDashboard.tsx`)**
-- Stats cards: os valores com `text-2xl` ficam grandes demais em mobile, ajustar para responsive
+A impressao usa a API `window.print()` do navegador, que automaticamente abre o seletor de impressora do sistema operacional. Nao precisa de driver ou configuracao extra -- funciona em qualquer navegador (desktop e mobile).
 
 ---
 
-## Resumo dos arquivos alterados
+## Arquivos a criar/modificar
+
+### 1. Criar componente `OrderReceipt` (comanda)
+**Arquivo:** `src/components/company/OrderReceipt.tsx`
+
+Responsabilidades:
+- Receber os dados do pedido como props
+- Renderizar a comanda em formato otimizado para impressao (fonte monoespaco, largura fixa para impressoras termicas de 80mm)
+- Layout limpo sem cores de fundo (economia de tinta)
+- Informacoes incluidas:
+  - Numero do pedido (primeiros 8 caracteres do ID)
+  - Data e hora formatados em pt-BR
+  - Nome e telefone do cliente
+  - Tipo do pedido (entrega ou retirada)
+  - Lista de itens com quantidade, nome, observacao e preco
+  - Subtotal, taxa de entrega, desconto e total
+  - Endereco completo (quando entrega)
+  - Observacoes e forma de pagamento (extraida do campo `notes`)
+
+### 2. Criar dialog `PrintOrderDialog`
+**Arquivo:** `src/components/company/PrintOrderDialog.tsx`
+
+Responsabilidades:
+- Dialog (modal) que mostra o preview da comanda
+- Botao "Imprimir" que chama `window.print()` com CSS especifico para impressao
+- Usa `@media print` para esconder tudo exceto a comanda durante a impressao
+- Botao "Fechar" para sair sem imprimir
+
+### 3. Modificar `CompanyOrders.tsx`
+- Adicionar botao de impressora (icone `Printer` do lucide-react) no card de cada pedido
+- Ao clicar, abre o `PrintOrderDialog` passando os dados do pedido
+- Posicionar o botao ao lado do seletor de status, na area inferior do card
+
+---
+
+## Detalhes tecnicos
+
+### CSS de impressao
+Sera adicionado um bloco `@media print` no `index.css` para:
+- Esconder TUDO da pagina exceto o conteudo da comanda
+- Remover margens e paddings do body
+- Definir largura otimizada para impressoras termicas (80mm)
+- Usar fonte monoespaco para alinhamento
+
+### Dados disponiveis no pedido
+Todos os dados necessarios ja estao disponiveis no objeto `order` retornado pela query:
+- `id`, `created_at`, `customer_name`, `customer_phone`
+- `order_type` (delivery/pickup)
+- `order_items[]` com `quantity`, `product_name`, `price`, `observation`
+- `subtotal`, `delivery_fee`, `discount_amount`, `total`
+- `address_street`, `address_number`, `address_neighborhood`, `address_city`
+- `notes` (contem forma de pagamento)
+
+### Compatibilidade
+- Desktop: `window.print()` abre o dialog do sistema com lista de impressoras
+- Mobile/PWA: abre o menu de compartilhamento/impressao nativo do celular
+- Impressoras termicas (80mm): o CSS sera otimizado para essa largura
+- Impressoras comuns (A4): tambem funciona, a comanda fica centralizada
+
+---
+
+## Resumo dos arquivos
 
 | Arquivo | Acao | Motivo |
 |---------|------|--------|
-| Migracao SQL | Criar | Corrigir FK `orders_coupon_id_fkey` para `ON DELETE SET NULL` |
-| `src/App.css` | Limpar | Remover regras do template Vite que quebram layout |
-| `src/index.css` | Editar | Remover `font-size: 18px` do mobile |
-| `src/hooks/useCoupons.ts` | Editar | Usar edge function para deletar cupom |
-| `src/pages/admin/AdminUsers.tsx` | Editar | Grid de stats responsivo |
-| `src/pages/admin/AdminOrders.tsx` | Editar | Grid de stats responsivo |
-| `src/pages/admin/AdminCoupons.tsx` | Editar | Modal full-screen no mobile |
-| `src/pages/company/CompanyDashboard.tsx` | Editar | Tamanhos de texto responsivos nos stats |
-| `src/pages/RestaurantPage.tsx` | Editar | Info card responsivo |
-
----
-
-## O que NAO precisa mudar
-- Permissoes RLS do admin: ja estao corretas (`ALL` via `has_role`)
-- Pages da empresa (Products, Orders, Settings): ja possuem boa responsividade com breakpoints `sm:` e `lg:`
-- AdminCompanies e AdminDashboard: ja foram ajustadas previamente com responsividade
-- PWA: ja esta configurado e funcionando
-
+| `src/components/company/OrderReceipt.tsx` | Criar | Componente visual da comanda |
+| `src/components/company/PrintOrderDialog.tsx` | Criar | Dialog com preview e botao imprimir |
+| `src/pages/company/CompanyOrders.tsx` | Modificar | Adicionar botao de impressora nos cards |
+| `src/index.css` | Modificar | Adicionar regras `@media print` |

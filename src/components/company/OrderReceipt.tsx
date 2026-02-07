@@ -40,12 +40,12 @@ const OrderReceipt = ({ order }: OrderReceiptProps) => {
   return (
     <div
       id="print-receipt"
-      className="font-mono text-xs leading-relaxed p-4"
+      className="font-mono text-xs leading-relaxed p-4 font-bold"
       style={{ width: "80mm", maxWidth: "100%", margin: "0 auto", color: "#000", background: "#fff" }}
     >
       {/* Header */}
       <div className="text-center mb-2">
-        <p className="text-sm font-bold">COMANDA - BigFood</p>
+        <p className="text-sm font-bold">- BIGFOOD -</p>
       </div>
       <p>{separator}</p>
 

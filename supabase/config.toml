@@ -7,7 +7,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.update-user-password]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-admin]
 verify_jwt = false

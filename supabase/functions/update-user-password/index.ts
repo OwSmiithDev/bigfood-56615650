@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -21,19 +21,21 @@ serve(async (req) => {
       throw new Error("Não autorizado");
     }
 
-    // Create client with user's token to check if they're admin
-    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { authorization: authHeader } },
+    const token = authHeader.replace("Bearer ", "");
+
+    // Create admin client for all operations
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: { user: requestingUser }, error: authError } = await supabaseUser.auth.getUser();
+    // Verify the user's token
+    const { data: { user: requestingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !requestingUser) {
       console.error("Auth error:", authError);
       throw new Error("Não autorizado");
     }
 
-    // Check if requesting user is admin
-    const { data: roles } = await supabaseUser
+    const { data: roles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", requestingUser.id)
@@ -53,14 +55,6 @@ serve(async (req) => {
     if (newPassword.length < 6) {
       throw new Error("A senha deve ter pelo menos 6 caracteres");
     }
-
-    // Create admin client
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
 
     // Update user password
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(

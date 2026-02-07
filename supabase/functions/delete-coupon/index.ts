@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 
+const VERSION = "v2.0.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -12,28 +14,37 @@ serve(async (req) => {
   }
 
   try {
+    console.log(`[${VERSION}] delete-coupon called`);
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Get the authorization header to verify admin
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      throw new Error("Unauthorized");
-    }
-
-    // Create client with user's token to check if they're admin
-    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { authorization: authHeader } },
+    // Create admin client (bypasses RLS)
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
     });
 
-    const { data: { user: requestingUser }, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !requestingUser) {
-      console.error("Auth error:", authError);
-      throw new Error("Unauthorized");
+    // Verify caller's auth token using admin client
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      throw new Error("Unauthorized: missing authorization header");
     }
 
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: requestingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !requestingUser) {
+      console.error(`[${VERSION}] Auth error:`, authError);
+      throw new Error("Unauthorized: invalid token");
+    }
+
+    console.log(`[${VERSION}] Authenticated user:`, requestingUser.id);
+
     // Check if requesting user is admin
-    const { data: roles } = await supabaseUser
+    const { data: roles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", requestingUser.id)
@@ -50,13 +61,7 @@ serve(async (req) => {
       throw new Error("Coupon ID is required");
     }
 
-    // Create admin client
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    console.log(`[${VERSION}] Deleting coupon:`, couponId);
 
     // First, update orders to remove the coupon association
     const { error: orderError } = await supabaseAdmin
@@ -65,7 +70,7 @@ serve(async (req) => {
       .eq("coupon_id", couponId);
 
     if (orderError) {
-      console.error("Error updating orders:", orderError);
+      console.error(`[${VERSION}] Error updating orders:`, orderError);
       throw orderError;
     }
 
@@ -76,7 +81,7 @@ serve(async (req) => {
       .eq("coupon_id", couponId);
 
     if (usageError) {
-      console.error("Error deleting coupon usage:", usageError);
+      console.error(`[${VERSION}] Error deleting coupon usage:`, usageError);
       throw usageError;
     }
 
@@ -87,25 +92,26 @@ serve(async (req) => {
       .eq("id", couponId);
 
     if (deleteError) {
-      console.error("Error deleting coupon:", deleteError);
+      console.error(`[${VERSION}] Error deleting coupon:`, deleteError);
       throw deleteError;
     }
 
-    console.log("Coupon deleted successfully:", couponId);
+    console.log(`[${VERSION}] Coupon deleted successfully:`, couponId);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Coupon deleted successfully"
+        message: "Coupon deleted successfully",
+        _version: VERSION,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Error deleting coupon";
-    console.error("Error in delete-coupon function:", error);
+    console.error(`[${VERSION}] Error in delete-coupon function:`, error);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: errorMessage, _version: VERSION }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

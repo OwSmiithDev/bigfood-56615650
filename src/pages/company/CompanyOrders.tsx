@@ -9,6 +9,7 @@ import {
   Truck,
   Package,
   Bell,
+  Printer,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { useOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { useToast } from "@/hooks/use-toast";
 import { CompanySidebar } from "@/components/company/CompanySidebar";
+import PrintOrderDialog from "@/components/company/PrintOrderDialog";
 
 const statusOptions = [
   { value: "pending", label: "Pendente", color: "bg-yellow-500", icon: Clock },
@@ -45,6 +47,7 @@ const CompanyOrders = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [printOrder, setPrintOrder] = useState<any>(null);
 
   const handleUpdateStatus = async (orderId: string, status: string) => {
     try {
@@ -193,19 +196,28 @@ const CompanyOrders = () => {
                         <p className="font-bold text-base sm:text-lg text-primary">
                           R$ {order.total.toFixed(2).replace(".", ",")}
                         </p>
-                        <select
-                          value={order.status || "pending"}
-                          onChange={(e) =>
-                            handleUpdateStatus(order.id, e.target.value)
-                          }
-                          className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-border bg-background text-xs sm:text-sm min-w-0"
-                        >
-                          {statusOptions.map((s) => (
-                            <option key={s.value} value={s.value}>
-                              {s.label}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setPrintOrder(order)}
+                            className="p-1.5 sm:p-2 rounded-lg border border-border bg-background text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                            title="Imprimir comanda"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                          <select
+                            value={order.status || "pending"}
+                            onChange={(e) =>
+                              handleUpdateStatus(order.id, e.target.value)
+                            }
+                            className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-border bg-background text-xs sm:text-sm min-w-0"
+                          >
+                            {statusOptions.map((s) => (
+                              <option key={s.value} value={s.value}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -220,6 +232,12 @@ const CompanyOrders = () => {
           )}
         </div>
       </main>
+
+      <PrintOrderDialog
+        open={!!printOrder}
+        onOpenChange={(open) => !open && setPrintOrder(null)}
+        order={printOrder}
+      />
     </div>
   );
 };

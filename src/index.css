@@ -238,3 +238,42 @@
     @apply bg-card/95 backdrop-blur-2xl;
   }
 }
+
+/* Print styles for order receipt */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #print-receipt,
+  #print-receipt * {
+    visibility: visible !important;
+  }
+
+  #print-receipt {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 4mm !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  .print-hide {
+    display: none !important;
+  }
+
+  .print-dialog {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+}
